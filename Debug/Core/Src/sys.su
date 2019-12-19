@@ -1,2 +1,0 @@
-stm32g4xx_ll_pwr.h:772:22:LL_PWR_DisableDeadBatteryPD	4	static
-sys.c:28:6:MX_SYS_Init	8	static
