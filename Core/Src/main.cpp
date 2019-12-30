@@ -30,6 +30,9 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
+#include "rflink.h"
+#include "visualstatus.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -50,6 +53,13 @@
 
 /* USER CODE BEGIN PV */
 
+bool transmitter { false };
+RfLink *rfLink;
+VisualStatus *visualStatus;
+
+int16_t testData { 0 };
+bool testDirectionUp { true };
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -60,6 +70,32 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
+
+//	uint16_t c = rfLink.rf1Module->getFirmwareVersion();
+//	uint16_t c2 = rfLink.rf2Module->getFirmwareVersion();
+//	HAL_GPIO_WritePin(PWMOE_GPIO_Port, PWMOE_Pin, GPIO_PIN_SET);
+
+	if (htim->Instance == TIM4) {
+		testData += testDirectionUp ? 10 : -10;
+		if (testData > 0xFFF) {
+			testData = 0xFFF;
+			testDirectionUp = false;
+		} else if (testData < 0) {
+			testData = 0;
+			testDirectionUp = true;
+		}
+	}
+
+	rfLink->processHeartBeat(htim);
+	visualStatus->processHeartBeat(htim);
+}
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+	rfLink->processIrqs(GPIO_Pin);
+}
+
 
 /* USER CODE END 0 */
 
@@ -103,8 +139,56 @@ int main(void)
   MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
 
+  // Check if this is a transmitter?
+//  if (HAL_GPIO_ReadPin(TXMODE_GPIO_Port, TXMODE_Pin) == GPIO_PIN_RESET) {
+//	  transmitter = false;
+//  }
+
+
+  Pin redLed = Pin(LEDRED_GPIO_Port, LEDRED_Pin);
+  Pin greenLed = Pin(LEDGREEN_GPIO_Port, LEDGREEN_Pin);
+  Pin blueLed = Pin(LEDBLUE_GPIO_Port, LEDBLUE_Pin);
+  visualStatus = new VisualStatus(&htim4, redLed, greenLed, blueLed);
+
+  rfLink = new RfLink(&htim4, transmitter);
+  rfLink->init();
+	rfLink->onTransmit = [](Packet &packet) {
+		ServoData data {0};
+		uint8_t lsb = (uint8_t)testData;
+		uint8_t msb = (uint8_t)((testData >> 8) & 0x0F);
+		data.ch1Lsb = lsb;
+		data.ch12Msb.ch1Msb = msb;
+		data.ch2Lsb = lsb;
+		data.ch12Msb.ch2Msb = msb;
+		data.ch3Lsb = lsb;
+		data.ch34Msb.ch3Msb = msb;
+		data.ch4Lsb = lsb;
+		data.ch34Msb.ch4Msb = msb;
+
+		std::copy(std::begin(data), std::end(data), std::begin(packet.payload));
+	};
+	rfLink->onReceive = [](Packet &packet) {
+	  float resolution = 7999.0f / 4095.0f;
+	  float pwm1 = 8000 - (packet.payload[0] + (((packet.payload[2] >> 4) & 0x0F) << 8) * resolution);
+	  float pwm2 = 8000 - (packet.payload[1] + ((packet.payload[2] & 0x0F) << 8) * resolution);
+	  float pwm3 = 8000 - (packet.payload[3] + (((packet.payload[5] >> 4) & 0x0F) << 8) * resolution);
+	  float pwm4 = 8000 - (packet.payload[4] + ((packet.payload[5] & 0x0F) << 8) * resolution);
+	  float pwm5 = 8000 - (packet.payload[6] + ((packet.payload[7] & 0x0F) << 8) * resolution);
+
+//	  __HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_1, pwm1);
+//	  __HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_2, pwm2);
+//	  __HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_3, pwm3);
+//	  __HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_4, pwm4);
+//	  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, pwm5);
+	};
+
+
+	rfLink->onLinkStatusChange = [](bool tracking) {
+		tracking ? visualStatus->setStatus(TRACKING) : visualStatus->setStatus(CONNECTION_LOST);
+	};
+
 //  HAL_GPIO_WritePin(LEDBLUE_GPIO_Port, LEDBLUE_Pin, GPIO_PIN_RESET);
-//	HAL_GPIO_WritePin(RFPOWEREN_GPIO_Port, RFPOWEREN_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(RFPOWEREN_GPIO_Port, RFPOWEREN_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(PWMOE_GPIO_Port, PWMOE_Pin, GPIO_PIN_SET);
 
 //  HAL_GPIO_WritePin(BNORESET_GPIO_Port, BNORESET_Pin, GPIO_PIN_SET);
@@ -125,11 +209,15 @@ int main(void)
   HAL_TIM_PWM_Start(&htim5, TIM_CHANNEL_2);
   HAL_TIM_PWM_Start(&htim5, TIM_CHANNEL_3);
   HAL_TIM_PWM_Start(&htim5, TIM_CHANNEL_4);
+  HAL_TIM_Base_Start_IT(&htim4);  // Start heartbeat timer
   while (1)
   {
+	rfLink->runLoop();
+	visualStatus->runLoop();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+
 //	  if (HAL_I2C_Master_Transmit(&hi2c1, address, buffer, 1, 1000000) == HAL_OK) {
 //		  HAL_GPIO_WritePin(LEDRED_GPIO_Port, LEDRED_Pin, GPIO_PIN_RESET);
 //	  }
@@ -138,14 +226,14 @@ int main(void)
 //		  HAL_GPIO_WritePin(LEDGREEN_GPIO_Port, LEDGREEN_Pin, GPIO_PIN_RESET);
 //	  }
 
-	  if (HAL_I2C_Mem_Read(&hi2c1, 0x50, 0, 1, buffer, 1, 1000) == HAL_OK) {
-		  HAL_GPIO_WritePin(LEDGREEN_GPIO_Port, LEDGREEN_Pin, GPIO_PIN_RESET);
-	  }
-	  HAL_Delay(100);
-	  address++;
-	  if (address > 0xFF) {
-		  address = 0;
-	  }
+//	  if (HAL_I2C_Mem_Read(&hi2c1, 0x50, 0, 1, buffer, 1, 1000) == HAL_OK) {
+//		  HAL_GPIO_WritePin(LEDGREEN_GPIO_Port, LEDGREEN_Pin, GPIO_PIN_RESET);
+//	  }
+//	  HAL_Delay(100);
+//	  address++;
+//	  if (address > 0xFF) {
+//		  address = 0;
+//	  }
   }
   /* USER CODE END 3 */
 }
@@ -162,15 +250,15 @@ void SystemClock_Config(void)
 
   /** Configure the main internal regulator output voltage 
   */
-  HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1_BOOST);
+  HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1);
   /** Initializes the CPU, AHB and APB busses clocks 
   */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLM = RCC_PLLM_DIV2;
-  RCC_OscInitStruct.PLL.PLLN = 40;
+  RCC_OscInitStruct.PLL.PLLM = RCC_PLLM_DIV4;
+  RCC_OscInitStruct.PLL.PLLN = 75;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
   RCC_OscInitStruct.PLL.PLLQ = RCC_PLLQ_DIV2;
   RCC_OscInitStruct.PLL.PLLR = RCC_PLLR_DIV2;

@@ -60,19 +60,25 @@ void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOE, CANEN_Pin|RF1RXEN_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, GPSEN_Pin|PWMOE_Pin|RF2RXEN_Pin|RF2NRESET_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOC, GPSEN_Pin|PWMOE_Pin|RF2RXEN_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(RF1TXEN_GPIO_Port, RF1TXEN_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(RF2NSS_GPIO_Port, RF2NSS_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(RF2NSS_GPIO_Port, RF2NSS_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, RFPOWEREN_Pin|RF2TXEN_Pin|RF1NSS_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, RFPOWEREN_Pin|RF2TXEN_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(RF1NRESET_GPIO_Port, RF1NRESET_Pin, GPIO_PIN_SET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(RF2NRESET_GPIO_Port, RF2NRESET_Pin, GPIO_PIN_SET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(RF1NSS_GPIO_Port, RF1NSS_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pins : PEPin PEPin PEPin */
   GPIO_InitStruct.Pin = LEDBLUE_Pin|LEDGREEN_Pin|LEDRED_Pin;
@@ -84,7 +90,7 @@ void MX_GPIO_Init(void)
   /*Configure GPIO pin : PtPin */
   GPIO_InitStruct.Pin = TXMODE_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(TXMODE_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PD5 PD1 PD2 PD0 
@@ -217,6 +223,13 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(RF2IRQ_GPIO_Port, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI9_5_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
 }
 

@@ -103,6 +103,7 @@ void Error_Handler(void);
 #define PWM7_GPIO_Port GPIOA
 #define BMPINT_Pin GPIO_PIN_9
 #define BMPINT_GPIO_Port GPIOD
+#define BMPINT_EXTI_IRQn EXTI9_5_IRQn
 #define RF1TXEN_Pin GPIO_PIN_15
 #define RF1TXEN_GPIO_Port GPIOD
 #define PWM8_Pin GPIO_PIN_2
@@ -115,6 +116,7 @@ void Error_Handler(void);
 #define BNORESET_GPIO_Port GPIOE
 #define BNOINT_Pin GPIO_PIN_11
 #define BNOINT_GPIO_Port GPIOB
+#define BNOINT_EXTI_IRQn EXTI15_10_IRQn
 #define RF1MISO_Pin GPIO_PIN_14
 #define RF1MISO_GPIO_Port GPIOB
 #define RF1NRESET_Pin GPIO_PIN_11
@@ -137,6 +139,7 @@ void Error_Handler(void);
 #define RF2TXEN_GPIO_Port GPIOB
 #define RF2IRQ_Pin GPIO_PIN_10
 #define RF2IRQ_GPIO_Port GPIOE
+#define RF2IRQ_EXTI_IRQn EXTI15_10_IRQn
 #define RF1RXEN_Pin GPIO_PIN_13
 #define RF1RXEN_GPIO_Port GPIOE
 #define RF1NSS_Pin GPIO_PIN_12
@@ -145,6 +148,7 @@ void Error_Handler(void);
 #define RF1MOSI_GPIO_Port GPIOB
 #define RF1IRQ_Pin GPIO_PIN_8
 #define RF1IRQ_GPIO_Port GPIOD
+#define RF1IRQ_EXTI_IRQn EXTI9_5_IRQn
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */
