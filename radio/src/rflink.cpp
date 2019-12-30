@@ -69,8 +69,6 @@ void RfLink::init() {
     	rf1Module->setDioIrqParams(rxIrqMask, rxIrqMask, IRQ_RADIO_NONE, IRQ_RADIO_NONE);
     	rf2Module->setDioIrqParams(rxIrqMask, rxIrqMask, IRQ_RADIO_NONE, IRQ_RADIO_NONE);
 	}
-
-    __HAL_TIM_SET_AUTORELOAD(heartBeatTimer, transmitter ? trackingHopRate : acqusitionHopRate);
 }
 
 void RfLink::processHeartBeat(TIM_HandleTypeDef *htim) {
@@ -136,9 +134,11 @@ void RfLink::runLoop(void) {
 			packetNumber = 0;
 		}
 
-		uint8_t nextChannel = patternGenerator->nextHop();
-		rf1Module->setChannel(nextChannel);
-		rf2Module->setChannel(nextChannel);
+		if (transmitter || tracking || packetNumber % 3 == 0) {
+			uint8_t nextChannel = patternGenerator->nextHop();
+			rf1Module->setChannel(nextChannel);
+			rf2Module->setChannel(nextChannel);
+		}
 
 		// sendPacket xxx us, enterRx: 153 us
 		upLink() ? sendPacket() : enterRx();
@@ -230,28 +230,14 @@ void RfLink::setTracking(bool tracking) {
 	if (this->tracking != tracking) {
 		this->tracking = tracking;
 
-		if (tracking) {
-			if (onLinkStatusChange != nullptr) {
-				onLinkStatusChange(tracking);
-			}
-
-			if (!transmitter) {
-				__HAL_TIM_SET_AUTORELOAD(heartBeatTimer, trackingHopRate);
-			}
-		} else {
-			if (onLinkStatusChange != nullptr) {
-				onLinkStatusChange(tracking);
-			}
-
-			if (!transmitter) {
-				__HAL_TIM_SET_AUTORELOAD(heartBeatTimer, transmitter ? trackingHopRate : acqusitionHopRate);
-			}
+		if (onLinkStatusChange != nullptr) {
+			onLinkStatusChange(tracking);
 		}
 	}
 }
 
 void RfLink::adjustTimerToTrackTx(void) {
-	__HAL_TIM_SET_COUNTER(heartBeatTimer, timerWhenSynReceived);
+	__HAL_TIM_SET_COUNTER(heartBeatTimer, timerWhenSyncReceived);
 	setTracking(true);
 }
 

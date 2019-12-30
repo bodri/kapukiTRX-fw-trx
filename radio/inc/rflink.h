@@ -112,10 +112,8 @@ private:
 	uint32_t lostSync { 0 };
 	uint32_t lostPacket { 0 };
 	std::map<uint8_t, int> failuresPerChannel { };
-	uint16_t timerWhenSynReceived { 746 }; // Measured
+	uint16_t timerWhenSyncReceived { 746 }; // Measured
 
-	const uint32_t trackingHopRate { 9999 }; // 10 ms
-	const uint32_t acqusitionHopRate { 29999 }; // 30 ms
 	const uint8_t lostSyncTreshold { 20 };
 	const uint8_t downLinkFrequency { 4 };
 
