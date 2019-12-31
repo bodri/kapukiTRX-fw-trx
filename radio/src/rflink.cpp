@@ -109,13 +109,19 @@ void RfLink::runLoop(void) {
 //		HAL_SPI_Abort(&hspi1);
 //		HAL_GPIO_WritePin(RF1CS_GPIO_Port, RF1CS_Pin, GPIO_PIN_SET);
 
+		packetNumber++;
+		if (packetNumber >= 1000) {
+			packetNumber = 0;
+		}
+
+		if (!transmitter && !tracking && packetNumber % 3 != 0) {
+			return;
+		}
+
 		rf1RxEnable.low();
 		rf1TxEnable.low();
 		rf2RxEnable.low();
 		rf2TxEnable.low();
-
-		rf1Module->standBy();
-		rf2Module->standBy();
 
 		if (state != WAITING_FOR_NEXT_HOP) {
 			// 70 us
@@ -129,16 +135,9 @@ void RfLink::runLoop(void) {
 	switch (state) {
 	case SEND_OR_ENTER_RX: {
 		// 49 us
-		packetNumber++;
-		if (packetNumber >= 1000) {
-			packetNumber = 0;
-		}
-
-		if (transmitter || tracking || packetNumber % 3 == 0) {
-			uint8_t nextChannel = patternGenerator->nextHop();
-			rf1Module->setChannel(nextChannel);
-			rf2Module->setChannel(nextChannel);
-		}
+		uint8_t nextChannel = patternGenerator->nextHop();
+		rf1Module->setChannel(nextChannel);
+		rf2Module->setChannel(nextChannel);
 
 		// sendPacket xxx us, enterRx: 153 us
 		upLink() ? sendPacket() : enterRx();
