@@ -77,7 +77,7 @@ public:
     bool setCrcSeed(uint8_t *seed);
     void setCrcPolynomial(uint16_t polynomial);
     void setLNAGainSetting(const RadioLnaSettings_t lnaSetting);
-    void setAutoFs();
+    void setAutoFs(const bool autoFs);
 
     void processIrqs(void);
 

@@ -23,7 +23,6 @@ public:
 	virtual void enterRx(void) = 0;
 	virtual void send(uint8_t *, uint8_t) = 0;
 
-	std::function<void(void)> onSyncWordDone;
 	std::function<void(void)> onRxDone;
 	std::function<void(void)> onTxDone;
 };

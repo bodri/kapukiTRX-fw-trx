@@ -44,14 +44,19 @@ typedef struct {
 	uint8_t *end() { return &ch4Lsb + 2; }
 } ServoData;
 
+typedef struct {
+	int8_t rssiAverage;
+
+	uint8_t *begin() { return (uint8_t *)&rssiAverage; }
+	uint8_t *end() { return (uint8_t *)&rssiAverage + 1; }
+} TelemetryData;
+
 typedef enum {
 				INIT,
 				SEND_OR_ENTER_RX,
+				WAITING_FOR_SYNC,
 	// Tx							// Rx
-	TRANSMITTED,					WAITING_FOR_SYNC,
-									SYNC_RECEIVED,
-									WAITING_FOR_RECEIVE,
-									RECEIVED,
+	TRANSMITTED,					RECEIVED,
 				DONE,
 				WAITING_FOR_NEXT_HOP
 } LinkState;
@@ -109,14 +114,16 @@ private:
 	volatile bool heartBeatTimeout { false };
 	volatile IrqSource lastIrqSource { NO_IRQ };
 	bool useRf1 { true };
-	uint32_t lostSync { 0 };
 	uint32_t lostPacket { 0 };
 	std::map<uint8_t, int> failuresPerChannel { };
-	uint16_t timerWhenSyncReceived { 746 }; // Measured
+	uint16_t timerWhenSyncReceived { 2195 }; // Measured
+	int16_t rssiAverage { 0 };
+	uint8_t rssiReceivedCount { 0 };
 
-	const uint8_t lostSyncTreshold { 20 };
+	const uint8_t lostPacketTreshold { 20 };
 	const uint8_t downLinkFrequency { 4 };
 
+	bool loadReceivedPacketIfValid(SX1280 *rfModule);
 	bool upLink(void);
 	void setTracking(bool tracking);
 	void adjustTimerToTrackTx(void);

@@ -1,12 +1,12 @@
 /**
   ******************************************************************************
-  * File Name          : SYS.c
+  * File Name          : IWDG.c
   * Description        : This file provides code for the configuration
-  *                      of the SYS instances.
+  *                      of the IWDG instances.
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; Copyright (c) 2019 STMicroelectronics.
+  * <h2><center>&copy; Copyright (c) 2020 STMicroelectronics.
   * All rights reserved.</center></h2>
   *
   * This software component is licensed by ST under BSD 3-Clause license,
@@ -18,19 +18,26 @@
   */
 
 /* Includes ------------------------------------------------------------------*/
-#include "sys.h"
+#include "iwdg.h"
 
 /* USER CODE BEGIN 0 */
 
 /* USER CODE END 0 */
 
-/* SYS init function */
-void MX_SYS_Init(void)
+IWDG_HandleTypeDef hiwdg;
+
+/* IWDG init function */
+void MX_IWDG_Init(void)
 {
 
-  /** Disable the internal Pull-Up in Dead Battery pins of UCPD peripheral 
-  */
-  LL_PWR_DisableDeadBatteryPD();
+  hiwdg.Instance = IWDG;
+  hiwdg.Init.Prescaler = IWDG_PRESCALER_4;
+  hiwdg.Init.Window = 4095;
+  hiwdg.Init.Reload = 4095;
+  if (HAL_IWDG_Init(&hiwdg) != HAL_OK)
+  {
+    Error_Handler();
+  }
 
 }
 

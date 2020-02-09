@@ -25,10 +25,6 @@ void RfLink::init() {
 		state = TRANSMITTED;
 	};
 
-	rf1Module->onSyncWordDone = [this]() {
-	    state = SYNC_RECEIVED;
-	};
-
 	rf1Module->onRxDone = [this]() {
 		rf1RxEnable.low();
 		state = RECEIVED;
@@ -48,10 +44,6 @@ void RfLink::init() {
 		state = TRANSMITTED;
 	};
 
-	rf2Module->onSyncWordDone = [this]() {
-	    state = SYNC_RECEIVED;
-	};
-
 	rf2Module->onRxDone = [this]() {
 		rf2RxEnable.low();
 		state = RECEIVED;
@@ -65,7 +57,7 @@ void RfLink::init() {
     	rf1Module->setDioIrqParams(txIrqMask, txIrqMask, IRQ_RADIO_NONE, IRQ_RADIO_NONE);
     	rf2Module->setDioIrqParams(txIrqMask, txIrqMask, IRQ_RADIO_NONE, IRQ_RADIO_NONE);
     } else {
-    	uint16_t rxIrqMask { IRQ_RX_DONE | IRQ_SYNCWORD_VALID };
+    	uint16_t rxIrqMask { IRQ_RX_DONE };
     	rf1Module->setDioIrqParams(rxIrqMask, rxIrqMask, IRQ_RADIO_NONE, IRQ_RADIO_NONE);
     	rf2Module->setDioIrqParams(rxIrqMask, rxIrqMask, IRQ_RADIO_NONE, IRQ_RADIO_NONE);
 	}
@@ -107,7 +99,6 @@ void RfLink::runLoop(void) {
 //		LL_IWDG_ReloadCounter(IWDG);
 		heartBeatTimeout = false;
 //		HAL_SPI_Abort(&hspi1);
-//		HAL_GPIO_WritePin(RF1CS_GPIO_Port, RF1CS_Pin, GPIO_PIN_SET);
 
 		packetNumber++;
 		if (packetNumber >= 1000) {
@@ -134,50 +125,34 @@ void RfLink::runLoop(void) {
 
 	switch (state) {
 	case SEND_OR_ENTER_RX: {
+		Pin syncPin = Pin(SYNC_GPIO_Port, SYNC_Pin);
+		syncPin.high();
+
 		// 49 us
 		uint8_t nextChannel = patternGenerator->nextHop();
 		rf1Module->setChannel(nextChannel);
 		rf2Module->setChannel(nextChannel);
+//		rf1Module->setBufferBaseAddresses(0x80, 0x00);
+//		rf2Module->setBufferBaseAddresses(0x80, 0x00);
 
 		// sendPacket xxx us, enterRx: 153 us
 		upLink() ? sendPacket() : enterRx();
 		state = WAITING_FOR_SYNC;
+		syncPin.low();
 	}
 		break;
 	case TRANSMITTED:
 		state = DONE;
 		break;
-	case SYNC_RECEIVED:
-		lostSync = 0;
-	    adjustTimerToTrackTx();
-	    state = WAITING_FOR_RECEIVE;
-	    break;
 	case RECEIVED: {
 		// xxx us
 		lostPacket = 0;
+		adjustTimerToTrackTx();
 
-		uint8_t payload[127];
-		uint8_t maxSize = sizeof(payload);
-		uint8_t size;
-		memset(payload, 0, 127);
-		rf1Module->getPayload(payload, &size, maxSize);
-		if (size == 41) {
-			if (onReceive != nullptr) {
-				Packet packet;
-				memcpy(&packet.status, &payload[0], 2);
-				memcpy(&packet.payload[0], &payload[2], 6);
-				onReceive(packet);
-			}
-		} else {
-			rf2Module->getPayload(payload, &size, maxSize);
-			if (size == 41) {
-				if (onReceive != nullptr) {
-					Packet packet;
-					memcpy(&packet.status, &payload[0], 2);
-					memcpy(&packet.payload[0], &payload[2], 6);
-					onReceive(packet);
-				}
-			}
+		if (loadReceivedPacketIfValid(rf1Module)) {
+
+		} else if (loadReceivedPacketIfValid(rf2Module)) {
+
 		}
 		state = DONE;
 	}
@@ -213,15 +188,48 @@ void RfLink::runLoop(void) {
 //
 // Private methods
 //
+bool RfLink::loadReceivedPacketIfValid(SX1280 *rfModule) {
+	PacketStatus_t packetStatus;
+
+	rfModule->getPacketStatus(&packetStatus);
+	if (packetStatus.Flrc.ErrorStatus.PacketReceived &&
+			!(packetStatus.Flrc.ErrorStatus.AbortError || packetStatus.Flrc.ErrorStatus.CrcError || packetStatus.Flrc.ErrorStatus.LengthError || packetStatus.Flrc.ErrorStatus.SyncError)) {
+		uint8_t payload[127];
+		uint8_t size;
+
+		memset(payload, 0, sizeof(payload));
+		rfModule->getPayload(payload, &size, sizeof(payload));
+		if (size == 41) {
+			if (onReceive != nullptr) {
+				Packet packet;
+				memcpy(&packet.status, &payload[0], 2);
+				memcpy(&packet.payload[0], &payload[2], 6);
+				onReceive(packet);
+
+				if (!transmitter) {
+					packetNumber = packet.status.packetNumber; // sync packetNumber with TX
+					rssiAverage += packetStatus.Flrc.RssiAvg; // save RSSI for telemetry purposes
+					rssiReceivedCount++;
+				}
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
 
 bool RfLink::upLink(void) {
-	if (tracking) {
+	bool telemetryPacket = packetNumber % downLinkFrequency == 0;
+
+	if (transmitter) {
+		return !telemetryPacket;
+	} else if (tracking) {
 		// Every 4th hop is a down-link
-//		return ((transmitter && packetNumber % 4) || (!transmitter && !(packetNumber % 4)));
-		return transmitter;
+		return telemetryPacket;
 	} else {
 		// no down-link during acquisition
-		return transmitter;
+		return false;
 	}
 }
 
@@ -236,15 +244,16 @@ void RfLink::setTracking(bool tracking) {
 }
 
 void RfLink::adjustTimerToTrackTx(void) {
+	if (transmitter) { return; }
+
 	__HAL_TIM_SET_COUNTER(heartBeatTimer, timerWhenSyncReceived);
 	setTracking(true);
 }
 
 void RfLink::registerLostPacket(void) {
-	lostSync++;
 	lostPacket++;
 
-	if (lostSync > (transmitter ? (lostSyncTreshold / downLinkFrequency) : lostSyncTreshold)) {
+	if (lostPacket > (transmitter ? (lostPacketTreshold / downLinkFrequency) : lostPacketTreshold)) {
 		setTracking(false);
 		auto currentChannel = patternGenerator->currentChannel();
 		auto item = failuresPerChannel.find(currentChannel);
@@ -257,13 +266,25 @@ void RfLink::registerLostPacket(void) {
 }
 
 void RfLink::sendPacket(void) {
-	if (onTransmit == nullptr) { return; }
-
 	SX1280 *rfModule = useRf1 ? rf1Module : rf2Module;
 	useRf1 ? rf1TxEnable.high() : rf2TxEnable.high();
     Packet packet { 0 };
     packet.status.packetNumber = packetNumber;
-    onTransmit(packet);
+    if (transmitter) {
+		if (onTransmit != nullptr) {
+			onTransmit(packet);
+		}
+    } else {
+    	// send telemetry packet
+    	TelemetryData data { 0 };
+
+    	data.rssiAverage = rssiAverage / rssiReceivedCount; // Add RSSI
+    	rssiAverage = 0;
+    	rssiReceivedCount = 0;
+
+    	std::copy(std::begin(data), std::end(data), std::begin(packet.payload));
+    }
+
     rfModule->send((uint8_t *)&packet, sizeof(Packet));
 }
 

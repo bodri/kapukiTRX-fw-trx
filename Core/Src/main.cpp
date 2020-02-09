@@ -22,6 +22,7 @@
 #include "main.h"
 #include "fdcan.h"
 #include "i2c.h"
+#include "iwdg.h"
 #include "spi.h"
 #include "tim.h"
 #include "usart.h"
@@ -53,7 +54,7 @@
 
 /* USER CODE BEGIN PV */
 
-bool transmitter { false };
+bool transmitter { true };
 RfLink *rfLink;
 VisualStatus *visualStatus;
 
@@ -135,8 +136,8 @@ int main(void)
   MX_FDCAN3_Init();
   MX_I2C1_Init();
   MX_USART1_UART_Init();
-  MX_USART3_UART_Init();
   MX_TIM4_Init();
+//  MX_IWDG_Init();
   /* USER CODE BEGIN 2 */
 
   // Check if this is a transmitter?
@@ -168,18 +169,20 @@ int main(void)
 		std::copy(std::begin(data), std::end(data), std::begin(packet.payload));
 	};
 	rfLink->onReceive = [](Packet &packet) {
-	  float resolution = 7999.0f / 4095.0f;
-	  float pwm1 = 8000 - (packet.payload[0] + (((packet.payload[2] >> 4) & 0x0F) << 8) * resolution);
-	  float pwm2 = 8000 - (packet.payload[1] + ((packet.payload[2] & 0x0F) << 8) * resolution);
-	  float pwm3 = 8000 - (packet.payload[3] + (((packet.payload[5] >> 4) & 0x0F) << 8) * resolution);
-	  float pwm4 = 8000 - (packet.payload[4] + ((packet.payload[5] & 0x0F) << 8) * resolution);
-	  float pwm5 = 8000 - (packet.payload[6] + ((packet.payload[7] & 0x0F) << 8) * resolution);
+	  float resolution = 149999.0f / 4095.0f;
+	  float pwm1 = 149999 + (packet.payload[0] + (((packet.payload[2] >> 4) & 0x0F) << 8)) * resolution;
+	  float pwm2 = 149999 + (packet.payload[1] + ((packet.payload[2] & 0x0F) << 8)) * resolution;
+	  float pwm3 = 149999 + (packet.payload[3] + (((packet.payload[5] >> 4) & 0x0F) << 8)) * resolution;
+	  float pwm4 = 149999 + (packet.payload[4] + ((packet.payload[5] & 0x0F) << 8)) * resolution;
 
-//	  __HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_1, pwm1);
-//	  __HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_2, pwm2);
-//	  __HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_3, pwm3);
-//	  __HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_4, pwm4);
-//	  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, pwm5);
+	  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, pwm1);
+	  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_2, pwm2);
+	  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, pwm3);
+	  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_4, pwm4);
+	  __HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_1, pwm1);
+	  __HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_2, pwm2);
+	  __HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_3, pwm3);
+	  __HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_4, pwm4);
 	};
 
 
@@ -195,9 +198,11 @@ int main(void)
 
   unsigned char buffer[5];
   memset(buffer, 0, 5);
-  unsigned short address = 0x0;
+//  unsigned short address = 0x0;
 
   /* USER CODE END 2 */
+ 
+ 
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
@@ -253,8 +258,9 @@ void SystemClock_Config(void)
   HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1);
   /** Initializes the CPU, AHB and APB busses clocks 
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI|RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.LSIState = RCC_LSI_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLM = RCC_PLLM_DIV4;
@@ -281,10 +287,9 @@ void SystemClock_Config(void)
   }
   /** Initializes the peripherals clocks 
   */
-  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART1|RCC_PERIPHCLK_USART3
-                              |RCC_PERIPHCLK_I2C1|RCC_PERIPHCLK_FDCAN;
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART1|RCC_PERIPHCLK_I2C1
+                              |RCC_PERIPHCLK_FDCAN;
   PeriphClkInit.Usart1ClockSelection = RCC_USART1CLKSOURCE_PCLK2;
-  PeriphClkInit.Usart3ClockSelection = RCC_USART3CLKSOURCE_PCLK1;
   PeriphClkInit.I2c1ClockSelection = RCC_I2C1CLKSOURCE_PCLK1;
   PeriphClkInit.FdcanClockSelection = RCC_FDCANCLKSOURCE_PCLK1;
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)

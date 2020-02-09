@@ -87,6 +87,8 @@ void Error_Handler(void);
 #define CANEN_GPIO_Port GPIOE
 #define CANTX_Pin GPIO_PIN_4
 #define CANTX_GPIO_Port GPIOB
+#define SYNC_Pin GPIO_PIN_11
+#define SYNC_GPIO_Port GPIOC
 #define GPSRX_Pin GPIO_PIN_10
 #define GPSRX_GPIO_Port GPIOA
 #define GPSTX_Pin GPIO_PIN_9
