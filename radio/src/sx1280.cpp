@@ -15,6 +15,7 @@ Maintainer: Miguel Luis, Gregory Cristian and Matthieu Verdy
 */
 
 #include "sx1280.h"
+#include "rflink.h"
 
 #include <algorithm>
 
@@ -23,7 +24,7 @@ using namespace std;
 void SX1280::init(void) {
     resetChip();
     wakeup();
-	setRegulatorMode(USE_LDO);
+	setRegulatorMode(USE_DCDC);
 
     ModulationParams_t modulationParams;
     modulationParams.PacketType = PACKET_TYPE_FLRC;
@@ -35,20 +36,19 @@ void SX1280::init(void) {
     packetParams.PacketType = PACKET_TYPE_FLRC;
     packetParams.Params.Flrc.PreambleLength = PREAMBLE_LENGTH_32_BITS;
     packetParams.Params.Flrc.SyncWordLength = FLRC_SYNCWORD_LENGTH_4_BYTE;
-    packetParams.Params.Flrc.SyncWordMatch = RADIO_RX_MATCH_SYNCWORD_3;
+    packetParams.Params.Flrc.SyncWordMatch = RADIO_RX_MATCH_SYNCWORD_1;
     packetParams.Params.Flrc.HeaderType = RADIO_PACKET_FIXED_LENGTH;
-    packetParams.Params.Flrc.PayloadLength = 41; //BUFFER_SIZE;
+    packetParams.Params.Flrc.PayloadLength = sizeof(Packet);
     packetParams.Params.Flrc.CrcLength = RADIO_CRC_2_BYTES;
     packetParams.Params.Flrc.Whitening = RADIO_WHITENING_OFF;
 
-    setStandBy(STDBY_XOSC);
+    setStandBy(STDBY_RC);
     setPacketType(modulationParams.PacketType);
     setModulationParams(&modulationParams);
     setPacketParams(&packetParams);
-    setBufferBaseAddresses(0x80, 0x00);
-    setTxParams(0, RADIO_RAMP_02_US); //TX_OUTPUT_POWER
+    setBufferBaseAddresses(0x00, 0x00);
+    setTxParams(0, RADIO_RAMP_20_US); //TX_OUTPUT_POWER
     setLNAGainSetting(LNA_HIGH_SENSITIVITY_MODE);
-    setAutoFs(true);
 }
 
 void SX1280::standBy(void) {
@@ -366,13 +366,13 @@ void SX1280::wakeup(void) {
 
     //Don't wait for BUSY here
 
-//    if (radioSpi != NULL) {
-//    	ncsPin.low();
-//    	uint8_t txBuffer[] = { RADIO_GET_STATUS, 0 };
-//    	uint8_t rxBuffer[sizeof(txBuffer)];
-//    	HAL_SPI_TransmitReceive(this->radioSpi, txBuffer, rxBuffer, sizeof(txBuffer), 1000);
-//    	ncsPin.high();
-//    }
+    if (radioSpi != NULL) {
+    	ncsPin.low();
+    	uint8_t txBuffer[] = { RADIO_GET_STATUS, 0 };
+    	uint8_t rxBuffer[sizeof(txBuffer)];
+    	HAL_SPI_TransmitReceive(this->radioSpi, txBuffer, rxBuffer, sizeof(txBuffer), 1000);
+    	ncsPin.high();
+    }
 
     // Wait for chip to be ready.
     waitOnBusy( );
@@ -603,10 +603,16 @@ void SX1280::processIrqs(void) {
                     if ((irqRegs & IRQ_TX_DONE) == IRQ_TX_DONE) {
                     	onTxDone();
                     }
+                    if ((irqRegs & IRQ_RX_TX_TIMEOUT) == IRQ_RX_TX_TIMEOUT) {
+                    	onTimeout();
+                    }
                     break;
                 case MODE_TX:
                     if ((irqRegs & IRQ_TX_DONE) == IRQ_TX_DONE) {
                     	onTxDone();
+                    }
+                    if ((irqRegs & IRQ_RX_TX_TIMEOUT) == IRQ_RX_TX_TIMEOUT) {
+                    	onTimeout();
                     }
                     break;
                 default:

@@ -22,7 +22,7 @@ void VisualStatus::runLoop(void) {
 		previousStatus = status;
 		redLed.high();
 		greenLed.high();
-		blueLed.high();
+//		blueLed.high();
 	}
 
 	switch (status) {

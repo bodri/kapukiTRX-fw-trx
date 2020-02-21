@@ -25,6 +25,7 @@ public:
 
 	std::function<void(void)> onRxDone;
 	std::function<void(void)> onTxDone;
+	std::function<void(void)> onTimeout;
 };
 
 #endif /* RFMODULE_H_ */

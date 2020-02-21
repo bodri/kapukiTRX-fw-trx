@@ -24,20 +24,20 @@
 
 /* USER CODE END 0 */
 
-IWDG_HandleTypeDef hiwdg;
-
 /* IWDG init function */
 void MX_IWDG_Init(void)
 {
 
-  hiwdg.Instance = IWDG;
-  hiwdg.Init.Prescaler = IWDG_PRESCALER_4;
-  hiwdg.Init.Window = 4095;
-  hiwdg.Init.Reload = 4095;
-  if (HAL_IWDG_Init(&hiwdg) != HAL_OK)
+  LL_IWDG_Enable(IWDG);
+  LL_IWDG_EnableWriteAccess(IWDG);
+  LL_IWDG_SetPrescaler(IWDG, LL_IWDG_PRESCALER_32);
+  LL_IWDG_SetWindow(IWDG, 20);
+  LL_IWDG_SetReloadCounter(IWDG, 20);
+  while (LL_IWDG_IsReady(IWDG) != 1)
   {
-    Error_Handler();
   }
+
+  LL_IWDG_ReloadCounter(IWDG);
 
 }
 

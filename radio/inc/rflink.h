@@ -52,13 +52,15 @@ typedef struct {
 } TelemetryData;
 
 typedef enum {
-				INIT,
-				SEND_OR_ENTER_RX,
-				WAITING_FOR_SYNC,
+					INIT,
+					START,
 	// Tx							// Rx
+	WAITING_FOR_TX_OFFSET,			ENTER_RX,
+					IDLE,
 	TRANSMITTED,					RECEIVED,
-				DONE,
-				WAITING_FOR_NEXT_HOP
+					TIMEOUT,
+					DONE,
+					WAITING_FOR_NEXT_HOP
 } LinkState;
 
 typedef enum {
@@ -113,10 +115,11 @@ private:
 
 	volatile bool heartBeatTimeout { false };
 	volatile IrqSource lastIrqSource { NO_IRQ };
-	bool useRf1 { true };
+	bool useRf1 { false };
 	uint32_t lostPacket { 0 };
 	std::map<uint8_t, int> failuresPerChannel { };
-	uint16_t timerWhenSyncReceived { 2195 }; // Measured
+	uint16_t timerWhenSyncReceived { 3280 }; // = transmit time (2280us) + Tx offset (1000us)
+	uint16_t txOffsetInMicroSecond { 1000 };
 	int16_t rssiAverage { 0 };
 	uint8_t rssiReceivedCount { 0 };
 

@@ -54,7 +54,7 @@
 
 /* USER CODE BEGIN PV */
 
-bool transmitter { true };
+bool transmitter { false };
 RfLink *rfLink;
 VisualStatus *visualStatus;
 
@@ -169,11 +169,11 @@ int main(void)
 		std::copy(std::begin(data), std::end(data), std::begin(packet.payload));
 	};
 	rfLink->onReceive = [](Packet &packet) {
-	  float resolution = 149999.0f / 4095.0f;
-	  float pwm1 = 149999 + (packet.payload[0] + (((packet.payload[2] >> 4) & 0x0F) << 8)) * resolution;
-	  float pwm2 = 149999 + (packet.payload[1] + ((packet.payload[2] & 0x0F) << 8)) * resolution;
-	  float pwm3 = 149999 + (packet.payload[3] + (((packet.payload[5] >> 4) & 0x0F) << 8)) * resolution;
-	  float pwm4 = 149999 + (packet.payload[4] + ((packet.payload[5] & 0x0F) << 8)) * resolution;
+	  float resolution = 139999.0f / 4095.0f;
+	  float pwm1 = 139999 + (packet.payload[0] + (((packet.payload[2] >> 4) & 0x0F) << 8)) * resolution;
+	  float pwm2 = 139999 + (packet.payload[1] + ((packet.payload[2] & 0x0F) << 8)) * resolution;
+	  float pwm3 = 139999 + (packet.payload[3] + (((packet.payload[5] >> 4) & 0x0F) << 8)) * resolution;
+	  float pwm4 = 139999 + (packet.payload[4] + ((packet.payload[5] & 0x0F) << 8)) * resolution;
 
 	  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, pwm1);
 	  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_2, pwm2);
@@ -264,7 +264,7 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLM = RCC_PLLM_DIV4;
-  RCC_OscInitStruct.PLL.PLLN = 75;
+  RCC_OscInitStruct.PLL.PLLN = 70;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
   RCC_OscInitStruct.PLL.PLLQ = RCC_PLLQ_DIV2;
   RCC_OscInitStruct.PLL.PLLR = RCC_PLLR_DIV2;
@@ -281,7 +281,7 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_7) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_6) != HAL_OK)
   {
     Error_Handler();
   }
