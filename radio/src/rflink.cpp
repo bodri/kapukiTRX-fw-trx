@@ -73,11 +73,11 @@ void RfLink::init() {
 	rf2Module->setAddress(0x6969);
 
     if (transmitter) {
-    	uint16_t txIrqMask { IRQ_TX_DONE };
+    	uint16_t txIrqMask { IRQ_RX_DONE | IRQ_TX_DONE };
     	rf1Module->setDioIrqParams(txIrqMask, txIrqMask, IRQ_RADIO_NONE, IRQ_RADIO_NONE);
     	rf2Module->setDioIrqParams(txIrqMask, txIrqMask, IRQ_RADIO_NONE, IRQ_RADIO_NONE);
     } else {
-    	uint16_t rxIrqMask { IRQ_RX_DONE | IRQ_RX_TX_TIMEOUT };
+    	uint16_t rxIrqMask { IRQ_RX_DONE | IRQ_TX_DONE | IRQ_RX_TX_TIMEOUT };
     	rf1Module->setDioIrqParams(rxIrqMask, rxIrqMask, IRQ_RADIO_NONE, IRQ_RADIO_NONE);
     	rf2Module->setDioIrqParams(rxIrqMask, rxIrqMask, IRQ_RADIO_NONE, IRQ_RADIO_NONE);
 	}
@@ -87,7 +87,7 @@ void RfLink::processHeartBeat(TIM_HandleTypeDef *htim) {
 	if (htim != heartBeatTimer) { return; }
 
 	heartBeatTimeout = true;
-//	HAL_GPIO_WritePin(SYNC_GPIO_Port, SYNC_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(SYNC_GPIO_Port, SYNC_Pin, GPIO_PIN_SET);
 }
 
 void RfLink::processIrqs(uint16_t pin) {
@@ -131,10 +131,8 @@ void RfLink::runLoop(void) {
 			registerLostPacket();
 		}
 
-		if (!transmitter && !tracking) {
-			if (packetNumber % 3 != 0) {
-				return;
-			}
+		if (!transmitter && !tracking && packetNumber % 3 != 0) { // In acquisition mode the receiver slows down by 3
+			return;
 		}
 
 		rf1RxEnable.low();
@@ -155,7 +153,9 @@ void RfLink::runLoop(void) {
 		rf2Module->setChannel(nextChannel);
 
 		// sendPacket xxx us, enterRx: 153 us
-		state = upLink() ? WAITING_FOR_TX_OFFSET : ENTER_RX;
+		state = shouldSendPacket() ? WAITING_FOR_TX_OFFSET : ENTER_RX;
+		HAL_GPIO_WritePin(SYNC_GPIO_Port, SYNC_Pin, GPIO_PIN_RESET);
+
 	}
 		break;
 	case WAITING_FOR_TX_OFFSET:
@@ -171,22 +171,25 @@ void RfLink::runLoop(void) {
 	case TRANSMITTED: {
 //		HAL_GPIO_WritePin(SYNC_GPIO_Port, SYNC_Pin, GPIO_PIN_RESET);
 //		uint32_t cucc = __HAL_TIM_GET_COUNTER(heartBeatTimer);
+		HAL_GPIO_WritePin(TXORRX_GPIO_Port, TXORRX_Pin, GPIO_PIN_RESET);
 		state = DONE;
 	}
 		break;
 	case RECEIVED: {
 //		HAL_GPIO_WritePin(SYNC_GPIO_Port, SYNC_Pin, GPIO_PIN_RESET);
 		// xxx us
-		lostPacket = 0;
-		adjustTimerToTrackTx();
+		bool module1Received = validPacket(rf1Module);
+		bool module2Received = validPacket(rf2Module);
+		if (module1Received || module2Received) {
+			lostPacket = 0;
+			adjustTimerToTrackTx();
+		}
 
-		if (loadReceivedPacketIfValid(rf1Module)) {
-
+		if (module1Received && loadReceivedPacket(rf1Module)) {
 			if (transmitter) {
 				HAL_GPIO_WritePin(LEDBLUE_GPIO_Port, LEDBLUE_Pin, GPIO_PIN_RESET);
 			}
-		} else if (loadReceivedPacketIfValid(rf2Module)) {
-
+		} else if (module2Received && loadReceivedPacket(rf2Module)) {
 			if (transmitter) {
 				HAL_GPIO_WritePin(LEDBLUE_GPIO_Port, LEDBLUE_Pin, GPIO_PIN_SET);
 			}
@@ -220,6 +223,10 @@ void RfLink::runLoop(void) {
 //				packet->payload.packetNumber, rssiPowerLevel(packet->status.rssi),
 //				lqiPercentage(packet->status.linkQuality.lqi));
 
+		HAL_GPIO_WritePin(SYNC_GPIO_Port, SYNC_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(TXORRX_GPIO_Port, TXORRX_Pin, GPIO_PIN_RESET);
+		rf1Module->standBy();
+		rf2Module->standBy();
 		state = WAITING_FOR_NEXT_HOP;
 
 		// Can sleep here
@@ -233,37 +240,40 @@ void RfLink::runLoop(void) {
 //
 // Private methods
 //
-bool RfLink::loadReceivedPacketIfValid(SX1280 *rfModule) {
+bool RfLink::validPacket(SX1280 *rfModule) {
 	PacketStatus_t packetStatus;
 
 	rfModule->getPacketStatus(&packetStatus);
-	if (packetStatus.Flrc.ErrorStatus.PacketReceived &&
-			!(packetStatus.Flrc.ErrorStatus.AbortError || packetStatus.Flrc.ErrorStatus.CrcError || packetStatus.Flrc.ErrorStatus.LengthError || packetStatus.Flrc.ErrorStatus.SyncError)) {
-		uint8_t payload[127];
-		uint8_t size;
+	return (packetStatus.Flrc.ErrorStatus.PacketReceived &&
+			!(packetStatus.Flrc.ErrorStatus.AbortError || packetStatus.Flrc.ErrorStatus.CrcError || packetStatus.Flrc.ErrorStatus.LengthError || packetStatus.Flrc.ErrorStatus.SyncError));
+}
 
-		rfModule->getPayload(payload, &size, sizeof(payload));
-		if (size == sizeof(Packet)) {
-			if (onReceive != nullptr) {
-				Packet packet;
-				memcpy(&packet.status, &payload[0], 2);
-				memcpy(&packet.payload[0], &payload[2], 6);
-				onReceive(packet);
+bool RfLink::loadReceivedPacket(SX1280 *rfModule) {
+	uint8_t payload[127];
+	uint8_t size;
 
-				if (!transmitter) {
-					this->packetNumber = packet.status.packetNumber; // sync packetNumber with TX
-					this->rssiAverage += packetStatus.Flrc.RssiAvg; // save RSSI for telemetry purposes
-					this->rssiReceivedCount++;
-				}
-				return true;
+	rfModule->getPayload(payload, &size, sizeof(payload));
+	if (size == sizeof(Packet)) {
+		if (onReceive != nullptr) {
+			Packet packet;
+			memcpy(&packet.status, &payload[0], 2);
+			memcpy(&packet.payload[0], &payload[2], 6);
+			onReceive(packet);
+
+			if (!transmitter) {
+				this->packetNumber = packet.status.packetNumber; // sync packetNumber with TX
+//				this->rssiAverage += packetStatus.Flrc.RssiAvg; // save RSSI for telemetry purposes
+//				this->rssiReceivedCount++;
 			}
+
+			return true;
 		}
 	}
 
 	return false;
 }
 
-bool RfLink::upLink(void) {
+bool RfLink::shouldSendPacket(void) {
 	bool telemetryPacket = packetNumber % downLinkFrequency == 0;
 
 	if (transmitter) {
@@ -298,20 +308,22 @@ void RfLink::adjustTimerToTrackTx(void) {
 void RfLink::registerLostPacket(void) {
 	lostPacket++;
 
+	auto currentChannel = patternGenerator->currentChannel();
+	auto item = failuresPerChannel.find(currentChannel);
+	if (item != failuresPerChannel.end()) {
+		failuresPerChannel[currentChannel]++;
+	} else {
+		failuresPerChannel[currentChannel] = 1;
+	}
+
 	if (lostPacket > (transmitter ? (lostPacketTreshold / downLinkFrequency) : lostPacketTreshold)) {
 		setTracking(false);
-		auto currentChannel = patternGenerator->currentChannel();
-		auto item = failuresPerChannel.find(currentChannel);
-		if (item != failuresPerChannel.end()) {
-			failuresPerChannel[currentChannel]++;
-		} else {
-			failuresPerChannel[currentChannel] = 1;
-		}
 	}
 }
 
 void RfLink::sendPacket(void) {
-	HAL_GPIO_WritePin(SYNC_GPIO_Port, SYNC_Pin, GPIO_PIN_SET);
+//	HAL_GPIO_WritePin(SYNC_GPIO_Port, SYNC_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(TXORRX_GPIO_Port, TXORRX_Pin, GPIO_PIN_SET);
 
 	useRf1 = !useRf1;
 	SX1280 *rfModule = useRf1 ? rf1Module : rf2Module;
@@ -342,7 +354,7 @@ void RfLink::sendPacket(void) {
 
     rfModule->send((uint8_t *)&packet, sizeof(Packet));
 
-    HAL_GPIO_WritePin(SYNC_GPIO_Port, SYNC_Pin, GPIO_PIN_RESET);
+//    HAL_GPIO_WritePin(SYNC_GPIO_Port, SYNC_Pin, GPIO_PIN_RESET);
 }
 
 void RfLink::enterRx(void) {

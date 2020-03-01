@@ -118,7 +118,7 @@ private:
 	bool useRf1 { false };
 	uint32_t lostPacket { 0 };
 	std::map<uint8_t, int> failuresPerChannel { };
-	uint16_t timerWhenSyncReceived { 3280 }; // = transmit time (2280us) + Tx offset (1000us)
+	uint16_t timerWhenSyncReceived { 3255 }; // = transmit time (2280us) + Tx offset (1000us)
 	uint16_t txOffsetInMicroSecond { 1000 };
 	int16_t rssiAverage { 0 };
 	uint8_t rssiReceivedCount { 0 };
@@ -126,8 +126,9 @@ private:
 	const uint8_t lostPacketTreshold { 20 };
 	const uint8_t downLinkFrequency { 4 };
 
-	bool loadReceivedPacketIfValid(SX1280 *rfModule);
-	bool upLink(void);
+	bool validPacket(SX1280 *rfModule);
+	bool loadReceivedPacket(SX1280 *rfModule);
+	bool shouldSendPacket(void);
 	void setTracking(bool tracking);
 	void adjustTimerToTrackTx(void);
 	void registerLostPacket(void);
