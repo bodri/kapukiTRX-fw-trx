@@ -19,6 +19,7 @@
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
+#include <visualstatus.h>
 #include "main.h"
 #include "fdcan.h"
 #include "i2c.h"
@@ -32,7 +33,7 @@
 /* USER CODE BEGIN Includes */
 
 #include "rflink.h"
-#include "visualstatus.h"
+#include "channel.h"
 
 /* USER CODE END Includes */
 
@@ -151,40 +152,36 @@ int main(void)
   Pin blueLed = Pin(LEDBLUE_GPIO_Port, LEDBLUE_Pin);
   visualStatus = new VisualStatus(&htim4, redLed, greenLed, blueLed);
 
-  rfLink = new RfLink(&htim4, transmitter);
-  rfLink->init();
+	rfLink = new RfLink(&htim4, transmitter);
+	rfLink->init();
 	rfLink->onTransmit = [](Packet &packet) {
-		ServoData data {0};
-		uint8_t lsb = (uint8_t)testData;
-		uint8_t msb = (uint8_t)((testData >> 8) & 0x0F);
-		data.ch1Lsb = lsb;
-		data.ch12Msb.ch1Msb = msb;
-		data.ch2Lsb = lsb;
-		data.ch12Msb.ch2Msb = msb;
-		data.ch3Lsb = lsb;
-		data.ch34Msb.ch3Msb = msb;
-		data.ch4Lsb = lsb;
-		data.ch34Msb.ch4Msb = msb;
-
-		std::copy(std::begin(data), std::end(data), std::begin(packet.payload));
+		ChannelData channelData = ChannelData();
+		for (auto channel : channelData.channels) {
+			channel.value = testData;
+		}
+		channelData.fillRawChannelData(packet);
 	};
 	rfLink->onReceive = [](Packet &packet) {
-	  float resolution = 139999.0f / 4095.0f;
-	  float pwm1 = 139999 + (packet.payload[0] + (((packet.payload[2] >> 4) & 0x0F) << 8)) * resolution;
-	  float pwm2 = 139999 + (packet.payload[1] + ((packet.payload[2] & 0x0F) << 8)) * resolution;
-	  float pwm3 = 139999 + (packet.payload[3] + (((packet.payload[5] >> 4) & 0x0F) << 8)) * resolution;
-	  float pwm4 = 139999 + (packet.payload[4] + ((packet.payload[5] & 0x0F) << 8)) * resolution;
+		ChannelData channelData = ChannelData(packet);
+		float resolution = 139999.0f / 4095.0f;
+		float pwm1 = 139999 + channelData[0].value * resolution;
+		float pwm2 = 139999 + channelData[1].value * resolution;
+		float pwm3 = 139999 + channelData[2].value * resolution;
+		float pwm4 = 139999 + channelData[3].value * resolution;
+		float pwm5 = 139999 + channelData[4].value * resolution;
+		float pwm6 = 139999 + channelData[5].value * resolution;
+		float pwm7 = 139999 + channelData[6].value * resolution;
+		float pwm8 = 139999 + channelData[7].value * resolution;
 
-	  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, pwm1);
-	  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_2, pwm2);
-	  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, pwm3);
-	  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_4, pwm4);
-	  __HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_1, pwm1);
-	  __HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_2, pwm2);
-	  __HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_3, pwm3);
-	  __HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_4, pwm4);
+		__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, pwm1);
+		__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_2, pwm2);
+		__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, pwm3);
+		__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_4, pwm4);
+		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_1, pwm5);
+		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_2, pwm6);
+		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_3, pwm7);
+		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_4, pwm8);
 	};
-
 
 	rfLink->onLinkStatusChange = [](bool tracking) {
 		tracking ? visualStatus->setStatus(TRACKING) : visualStatus->setStatus(CONNECTION_LOST);

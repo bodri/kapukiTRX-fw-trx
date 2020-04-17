@@ -26,25 +26,6 @@ typedef struct {
 } Packet;
 
 typedef struct {
-	uint8_t ch1Lsb;
-	uint8_t ch2Lsb;
-	struct {
-		uint8_t ch1Msb : 4;
-		uint8_t ch2Msb : 4;
-	} ch12Msb;
-
-	uint8_t ch3Lsb;
-	uint8_t ch4Lsb;
-	struct {
-		uint8_t ch3Msb : 4;
-		uint8_t ch4Msb : 4;
-	} ch34Msb;
-
-	uint8_t *begin() { return &ch1Lsb; }
-	uint8_t *end() { return &ch4Lsb + 2; }
-} ServoData;
-
-typedef struct {
 	int8_t rssiAverage;
 
 	uint8_t *begin() { return (uint8_t *)&rssiAverage; }
