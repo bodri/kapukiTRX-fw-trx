@@ -32,8 +32,8 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
-#include "rflink.h"
 #include "channel.h"
+#include "rflink.h"
 
 /* USER CODE END Includes */
 
