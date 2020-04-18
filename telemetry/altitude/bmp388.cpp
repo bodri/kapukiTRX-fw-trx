@@ -25,7 +25,7 @@
  *
  */
 
-#include "bmp3xx.h"
+#include <altitude/bmp388.h>
 #include "main.h"
 #include "i2c.h"
 
@@ -47,7 +47,7 @@ static void delay_msec(uint32_t ms);
  @param  cspin SPI chip select. If not passed in, I2C will be used
  */
 /**************************************************************************/
-Bmp3xx::Bmp3xx() {
+BMP388::BMP388() {
 	filterEnabled = temperatureOversamplingEnabled = pressureOversamplingEnabled = false;
 }
 
@@ -63,7 +63,7 @@ Bmp3xx::Bmp3xx() {
  @return True on sensor initialization success. False on failure.
  */
 /**************************************************************************/
-bool Bmp3xx::begin(uint8_t addr) {
+bool BMP388::begin(uint8_t addr) {
 	i2cAddress = addr;
 
 //	_BMP3_i2c = theWire;
@@ -116,7 +116,7 @@ bool Bmp3xx::begin(uint8_t addr) {
  @return Temperature in degrees Centigrade
  */
 /**************************************************************************/
-float Bmp3xx::readTemperature(void) {
+float BMP388::readTemperature(void) {
 	performReading();
 	return temperature;
 }
@@ -127,7 +127,7 @@ float Bmp3xx::readTemperature(void) {
  @return Barometic pressure in Pascals
  */
 /**************************************************************************/
-float Bmp3xx::readPressure(void) {
+float BMP388::readPressure(void) {
 	performReading();
 	return pressure;
 }
@@ -143,7 +143,7 @@ float Bmp3xx::readPressure(void) {
  @return Altitude in meters
  */
 /**************************************************************************/
-float Bmp3xx::readAltitude(float seaLevel) {
+float BMP388::readAltitude(float seaLevel) {
 	// Equation taken from BMP180 datasheet (page 16):
 	//  http://www.adafruit.com/datasheets/BST-BMP180-DS000-09.pdf
 
@@ -164,7 +164,7 @@ float Bmp3xx::readAltitude(float seaLevel) {
  @return True on success, False on failure
  */
 /**************************************************************************/
-bool Bmp3xx::performReading(void) {
+bool BMP388::performReading(void) {
 	int8_t rslt;
 	/* Used to select the settings user needs to change */
 	uint16_t settings_sel = 0;
@@ -231,7 +231,7 @@ bool Bmp3xx::performReading(void) {
  */
 /**************************************************************************/
 
-bool Bmp3xx::setTemperatureOversampling(uint8_t oversample) {
+bool BMP388::setTemperatureOversampling(uint8_t oversample) {
 	if (oversample > BMP3_OVERSAMPLING_32X)
 		return false;
 
@@ -252,7 +252,7 @@ bool Bmp3xx::setTemperatureOversampling(uint8_t oversample) {
  @return True on success, False on failure
  */
 /**************************************************************************/
-bool Bmp3xx::setPressureOversampling(uint8_t oversample) {
+bool BMP388::setPressureOversampling(uint8_t oversample) {
 	if (oversample > BMP3_OVERSAMPLING_32X)
 		return false;
 
@@ -274,7 +274,7 @@ bool Bmp3xx::setPressureOversampling(uint8_t oversample) {
 
  */
 /**************************************************************************/
-bool Bmp3xx::setIIRFilterCoeff(uint8_t filtercoeff) {
+bool BMP388::setIIRFilterCoeff(uint8_t filtercoeff) {
 	if (filtercoeff > BMP3_IIR_FILTER_COEFF_127)
 		return false;
 
@@ -296,7 +296,7 @@ bool Bmp3xx::setIIRFilterCoeff(uint8_t filtercoeff) {
 
  */
 /**************************************************************************/
-bool Bmp3xx::setOutputDataRate(uint8_t odr) {
+bool BMP388::setOutputDataRate(uint8_t odr) {
 	if (odr > BMP3_ODR_0_001_HZ)
 		return false;
 

@@ -28,9 +28,9 @@
  *  Wraps the Bosch library for Arduino usage
  */
 
-class Bmp3xx {
+class BMP388 {
 public:
-	Bmp3xx();
+	BMP388();
 
 	bool begin(uint8_t addr = BMP3_I2C_ADDR_SEC);
 	float readTemperature(void);
