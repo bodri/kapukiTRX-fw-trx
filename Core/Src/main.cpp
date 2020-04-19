@@ -28,6 +28,7 @@
 #include "tim.h"
 #include "usart.h"
 #include "gpio.h"
+#include "orientation/bno055.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -197,6 +198,9 @@ int main(void)
   memset(buffer, 0, 5);
 //  unsigned short address = 0x0;
 
+  BNO055 orientationSensor = BNO055();
+  orientationSensor.begin();
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -212,8 +216,8 @@ int main(void)
   HAL_TIM_Base_Start_IT(&htim4);  // Start heartbeat timer
   while (1)
   {
-	rfLink->runLoop();
-	visualStatus->runLoop();
+//	rfLink->runLoop();
+//	visualStatus->runLoop();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -234,6 +238,11 @@ int main(void)
 //	  if (address > 0xFF) {
 //		  address = 0;
 //	  }
+
+	  HAL_Delay(100);
+	  int8_t temperature = orientationSensor.getTemperature();
+	  imu::Quaternion quaternion = orientationSensor.getQuaternion();
+	  for (int i = 0; i < 100; i++) { };
   }
   /* USER CODE END 3 */
 }

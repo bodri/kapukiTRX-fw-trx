@@ -64,7 +64,7 @@ BMP388::BMP388() {
  */
 /**************************************************************************/
 bool BMP388::begin(uint8_t addr) {
-	i2cAddress = addr;
+	i2cAddress = addr << 1;
 
 //	_BMP3_i2c = theWire;
 //	_BMP3_i2c->begin();

@@ -44,7 +44,7 @@
  *          Wire object
  */
 BNO055::BNO055(uint8_t address) {
-	i2cAddress = address;
+	i2cAddress = address << 1;
 }
 
 /*!
