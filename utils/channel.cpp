@@ -1,8 +1,14 @@
-/*
- * channel.cpp
+/**
+ * @file channel.h
+ * @brief Channel data representation.
  *
- *  Created on: 17 Apr 2020
- *      Author: gvaradi
+ * @author Varadi, Gyorgy, aka bodri
+ * Contact: bodri@bodrico.com
+ *
+ * @bug No known bugs.
+ *
+ * MIT license, all text above must be included in any redistribution
+ *
  */
 
 #include "channel.h"

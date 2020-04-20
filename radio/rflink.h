@@ -1,12 +1,18 @@
-/*
- * rflink.h
+/**
+ * @file rflink.h
+ * @brief Handles the RF link.
  *
- *  Created on: Nov 9, 2018
- *      Author: bodri
+ * @author Varadi, Gyorgy, aka bodri
+ * Contact: bodri@bodrico.com
+ *
+ * @bug No known bugs.
+ *
+ * MIT license, all text above must be included in any redistribution
+ *
  */
 
-#ifndef RFLINK_H_
-#define RFLINK_H_
+#ifndef __RFLINK_H__
+#define __RFLINK_H__
 
 #include "main.h"
 #include "patterngen.h"
@@ -117,4 +123,4 @@ private:
 	void enterRx(void);
 };
 
-#endif /* RFLINK_H_ */
+#endif // __RFLINK_H__

@@ -1,8 +1,14 @@
-/*
- * rflink.cpp
+/**
+ * @file rflink.cpp
+ * @brief Handles the RF link.
  *
- *  Created on: Nov 9, 2018
- *      Author: bodri
+ * @author Varadi, Gyorgy, aka bodri
+ * Contact: bodri@bodrico.com
+ *
+ * @bug No known bugs.
+ *
+ * MIT license, all text above must be included in any redistribution
+ *
  */
 
 #include "rflink.h"

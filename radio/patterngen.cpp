@@ -1,13 +1,17 @@
-/*
- * patterngen.cpp
+/**
+ * @file patterngen.cpp
+ * @brief Hopping sequence/pattern generator.
  *
- *  Created on: Nov 10, 2018
- *      Author: bodri
+ * @author Varadi, Gyorgy, aka bodri
+ * Contact: bodri@bodrico.com
+ *
+ * @bug No known bugs.
+ *
+ * MIT license, all text above must be included in any redistribution
+ *
  */
 
-
 #include "patterngen.h"
-
 #include "main.h"
 
 #include <string.h>

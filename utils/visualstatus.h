@@ -1,12 +1,18 @@
-/*
- * visualstatus.h
+/**
+ * @file visualstatus.h
+ * @brief Shows the RF link status using an RGB LED.
  *
- *  Created on: Dec 30, 2019
- *      Author: bodri
+ * @author Varadi, Gyorgy, aka bodri
+ * Contact: bodri@bodrico.com
+ *
+ * @bug No known bugs.
+ *
+ * MIT license, all text above must be included in any redistribution
+ *
  */
 
-#ifndef VISUALSTATUS_H_
-#define VISUALSTATUS_H_
+#ifndef __VISUALSTATUS_H__
+#define __VISUALSTATUS_H__
 
 #include <pin.hpp>
 
@@ -44,4 +50,4 @@ private:
 	LedStatus previousStatus { WAITING_FOR_CONNECTION };
 };
 
-#endif // VISUALSTATUS_H_
+#endif // __VISUALSTATUS_H__

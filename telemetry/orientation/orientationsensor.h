@@ -22,7 +22,7 @@ class OrientationSensor {
 public:
 	OrientationSensor(uint8_t address = BNO055_I2C_ADDR1) :
 		i2cAddress(i2cAddress << 1)
-	{ };
+	{ }
 
 	bool start();
 

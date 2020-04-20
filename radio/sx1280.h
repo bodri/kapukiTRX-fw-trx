@@ -1,3 +1,16 @@
+/**
+ * @file sx1280.h
+ * @brief SX1280 module driver.
+ *
+ * @author Varadi, Gyorgy, aka bodri
+ * Contact: bodri@bodrico.com
+ *
+ * @bug No known bugs.
+ *
+ * MIT license, all text above must be included in any redistribution
+ *
+ * Based on:
+ */
 /*
   ______                              _
  / _____)             _              | |

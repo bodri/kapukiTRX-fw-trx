@@ -20,7 +20,7 @@ class AltitudeSensor {
 public:
 	AltitudeSensor(uint8_t i2cAddress = BMP3_I2C_ADDR_PRIM) :
 		i2cAddress(i2cAddress << 1)
-	{ };
+	{ }
 
 	bool start();
 

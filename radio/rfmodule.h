@@ -1,12 +1,18 @@
-/*
- * rfmodule.h
+/**
+ * @file rfmodule.h
+ * @brief An RF module protocol.
  *
- *  Created on: Nov 10, 2018
- *      Author: bodri
+ * @author Varadi, Gyorgy, aka bodri
+ * Contact: bodri@bodrico.com
+ *
+ * @bug No known bugs.
+ *
+ * MIT license, all text above must be included in any redistribution
+ *
  */
 
-#ifndef RFMODULE_H_
-#define RFMODULE_H_
+#ifndef __RFMODULE_H__
+#define __RFMODULE_H__
 
 #include <functional>
 #include <vector>
@@ -28,4 +34,4 @@ public:
 	std::function<void(void)> onTimeout;
 };
 
-#endif /* RFMODULE_H_ */
+#endif // __RFMODULE_H__

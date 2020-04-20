@@ -1,12 +1,18 @@
-/*
- * pin.hpp
+/**
+ * @file pin.hpp
+ * @brief An STM32 pin representation.
  *
- *  Created on: Apr 10, 2019
- *      Author: bodri
+ * @author Varadi, Gyorgy, aka bodri
+ * Contact: bodri@bodrico.com
+ *
+ * @bug No known bugs.
+ *
+ * MIT license, all text above must be included in any redistribution
+ *
  */
 
-#ifndef PIN_HPP_
-#define PIN_HPP_
+#ifndef __PIN_HPP__
+#define __PIN_HPP__
 
 #include "main.h"
 
@@ -30,4 +36,4 @@ protected:
 	uint16_t pin;
 };
 
-#endif /* PIN_HPP_ */
+#endif // __PIN_HPP__

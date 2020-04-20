@@ -1,12 +1,18 @@
-/*
- * patterngen.h
+/**
+ * @file patterngen.h
+ * @brief Hopping sequence/pattern generator.
  *
- *  Created on: Nov 10, 2018
- *      Author: bodri
+ * @author Varadi, Gyorgy, aka bodri
+ * Contact: bodri@bodrico.com
+ *
+ * @bug No known bugs.
+ *
+ * MIT license, all text above must be included in any redistribution
+ *
  */
 
-#ifndef PATTERNGEN_H_
-#define PATTERNGEN_H_
+#ifndef __PATTERNGEN_H__
+#define __PATTERNGEN_H__
 
 #include <stdint.h>
 #include <vector>
@@ -30,4 +36,4 @@ private:
 
 
 
-#endif /* PATTERNGEN_H_ */
+#endif // __PATTERNGEN_H__

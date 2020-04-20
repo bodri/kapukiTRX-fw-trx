@@ -1,12 +1,18 @@
-/*
- * channel.h
+/**
+ * @file channel.h
+ * @brief Channel data representation.
  *
- *  Created on: 17 Apr 2020
- *      Author: gvaradi
+ * @author Varadi, Gyorgy, aka bodri
+ * Contact: bodri@bodrico.com
+ *
+ * @bug No known bugs.
+ *
+ * MIT license, all text above must be included in any redistribution
+ *
  */
 
-#ifndef CHANNEL_H
-#define CHANNEL_H
+#ifndef __CHANNEL_H__
+#define __CHANNEL_H__
 
 #include "rflink.h"
 
@@ -23,8 +29,8 @@ public:
 
 class ChannelData {
 public:
-	ChannelData() { };
-	~ChannelData() { };
+	ChannelData() { }
+	~ChannelData() { }
 
 	ChannelData (const Packet& packet);
 	ChannelData& operator= (const Packet& packet) {return *this;}
@@ -36,4 +42,4 @@ public:
 	std::vector<Channel> channels;
 };
 
-#endif /* CHANNEL_H */
+#endif // __CHANNEL_H__

@@ -1,8 +1,14 @@
-/*
- * visualstatus.cpp
+/**
+ * @file visualstatus.cpp
+ * @brief Shows the RF link status using an RGB LED.
  *
- *  Created on: Dec 30, 2019
- *      Author: bodri
+ * @author Varadi, Gyorgy, aka bodri
+ * Contact: bodri@bodrico.com
+ *
+ * @bug No known bugs.
+ *
+ * MIT license, all text above must be included in any redistribution
+ *
  */
 
 #include <visualstatus.h>
