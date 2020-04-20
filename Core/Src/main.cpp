@@ -19,6 +19,7 @@
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
+#include <altitude/altitudesensor.h>
 #include <orientation/orientationsensor.h>
 #include <visualstatus.h>
 #include "main.h"
@@ -29,11 +30,6 @@
 #include "tim.h"
 #include "usart.h"
 #include "gpio.h"
-#include "altitude/bmp388.h"
-
-/* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
-
 #include "channel.h"
 #include "rflink.h"
 
@@ -202,9 +198,8 @@ int main(void)
   OrientationSensor orientationSensor = OrientationSensor();
   orientationSensor.start();
 
-  BMP388 altitudeSensor = BMP388(BMP3_I2C_ADDR_SEC);
-  altitudeSensor.begin();
-  altitudeSensor.setNormalMode();
+  AltitudeSensor altitudeSensor = AltitudeSensor(BMP3_I2C_ADDR_SEC);
+  altitudeSensor.start();
 
   /* USER CODE END 2 */
 
@@ -245,10 +240,11 @@ int main(void)
 //	  }
 
 	  HAL_Delay(100);
-	  int8_t temperature = orientationSensor.getTemperature();
-	  bno055_quaternion_t quaternion = orientationSensor.getQuaternion();
-//	  double temperature = altitudeSensor.readTemperature();
-//	  double altitude = altitudeSensor.readAltitude(1023);
+//	  int8_t temperature = orientationSensor.getTemperature();
+//	  bno055_quaternion_t quaternion = orientationSensor.getQuaternion();
+	  altitudeSensor.performReading();
+	  double temperature = altitudeSensor.temperature;
+	  double pressure = altitudeSensor.pressure; //readAltitude(1023);
 	  for (int i = 0; i < 100; i++) { };
   }
   /* USER CODE END 3 */
