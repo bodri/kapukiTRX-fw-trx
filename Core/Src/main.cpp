@@ -200,7 +200,7 @@ int main(void)
 //  unsigned short address = 0x0;
 
   OrientationSensor orientationSensor = OrientationSensor();
-  orientationSensor.begin();
+  orientationSensor.start();
 
   BMP388 altitudeSensor = BMP388(BMP3_I2C_ADDR_SEC);
   altitudeSensor.begin();
