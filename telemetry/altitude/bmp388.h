@@ -30,12 +30,14 @@
 
 class BMP388 {
 public:
-	BMP388();
+	BMP388(uint8_t addr = BMP3_I2C_ADDR_PRIM);
 
-	bool begin(uint8_t addr = BMP3_I2C_ADDR_SEC);
-	float readTemperature(void);
-	float readPressure(void);
-	float readAltitude(float seaLevel);
+	bool begin();
+	int8_t setNormalMode();
+	int8_t setForcedMode();
+	double readTemperature(void);
+	double readPressure(void);
+	double readAltitude(double seaLevel);
 
 	bool setTemperatureOversampling(uint8_t os);
 	bool setPressureOversampling(uint8_t os);

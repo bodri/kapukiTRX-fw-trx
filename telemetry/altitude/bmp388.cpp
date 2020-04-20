@@ -47,7 +47,8 @@ static void delay_msec(uint32_t ms);
  @param  cspin SPI chip select. If not passed in, I2C will be used
  */
 /**************************************************************************/
-BMP388::BMP388() {
+BMP388::BMP388(uint8_t i2sAddress) :
+	i2cAddress(i2sAddress << 1) {
 	filterEnabled = temperatureOversamplingEnabled = pressureOversamplingEnabled = false;
 }
 
@@ -63,51 +64,71 @@ BMP388::BMP388() {
  @return True on sensor initialization success. False on failure.
  */
 /**************************************************************************/
-bool BMP388::begin(uint8_t addr) {
-	i2cAddress = addr << 1;
-
-//	_BMP3_i2c = theWire;
-//	_BMP3_i2c->begin();
-
-	sensorDevice.dev_id = addr;
+bool BMP388::begin() {
+	sensorDevice.dev_id = i2cAddress;
 	sensorDevice.intf = BMP3_I2C_INTF;
 	sensorDevice.read = &i2c_read;
 	sensorDevice.write = &i2c_write;
 
 	sensorDevice.delay_ms = delay_msec;
 
-	int8_t rslt = BMP3_OK;
-	rslt = bmp3_init(&sensorDevice);
-
-	if (rslt != BMP3_OK)
+	if (bmp3_init(&sensorDevice) != BMP3_OK) {
 		return false;
+	}
 
-#ifdef BMP3XX_DEBUG
-  Serial.print("T1 = "); Serial.println(sensorDevice.calib_data.reg_calib_data.par_t1);
-  Serial.print("T2 = "); Serial.println(sensorDevice.calib_data.reg_calib_data.par_t2);
-  Serial.print("T3 = "); Serial.println(sensorDevice.calib_data.reg_calib_data.par_t3);
-  Serial.print("P1 = "); Serial.println(sensorDevice.calib_data.reg_calib_data.par_p1);
-  Serial.print("P2 = "); Serial.println(sensorDevice.calib_data.reg_calib_data.par_p2);
-  Serial.print("P3 = "); Serial.println(sensorDevice.calib_data.reg_calib_data.par_p3);
-  Serial.print("P4 = "); Serial.println(sensorDevice.calib_data.reg_calib_data.par_p4);
-  Serial.print("P5 = "); Serial.println(sensorDevice.calib_data.reg_calib_data.par_p5);
-  Serial.print("P6 = "); Serial.println(sensorDevice.calib_data.reg_calib_data.par_p6);
-  Serial.print("P7 = "); Serial.println(sensorDevice.calib_data.reg_calib_data.par_p7);
-  Serial.print("P8 = "); Serial.println(sensorDevice.calib_data.reg_calib_data.par_p8);
-  Serial.print("P9 = "); Serial.println(sensorDevice.calib_data.reg_calib_data.par_p9);
-  Serial.print("P10 = "); Serial.println(sensorDevice.calib_data.reg_calib_data.par_p10);
-  Serial.print("P11 = "); Serial.println(sensorDevice.calib_data.reg_calib_data.par_p11);
-  //Serial.print("T lin = "); Serial.println(the_sensor.calib_data.reg_calib_data.t_lin);
-#endif
-
-	setTemperatureOversampling(BMP3_NO_OVERSAMPLING);
-	setPressureOversampling(BMP3_NO_OVERSAMPLING);
-	setIIRFilterCoeff(BMP3_IIR_FILTER_DISABLE);
-
-	// don't do anything till we request a reading
-	sensorDevice.settings.op_mode = BMP3_FORCED_MODE;
+//	setTemperatureOversampling(BMP3_NO_OVERSAMPLING);
+//	setPressureOversampling(BMP3_NO_OVERSAMPLING);
+//	setIIRFilterCoeff(BMP3_IIR_FILTER_DISABLE);
+//
+//	// don't do anything till we request a reading
+//	sensorDevice.settings.op_mode = BMP3_FORCED_MODE;
 
 	return true;
+}
+
+int8_t BMP388::setNormalMode() {
+    int8_t rslt;
+    /* Used to select the settings user needs to change */
+    uint16_t settings_sel;
+
+    /* Select the pressure and temperature sensor to be enabled */
+    sensorDevice.settings.press_en = BMP3_ENABLE;
+    sensorDevice.settings.temp_en = BMP3_ENABLE;
+    /* Select the output data rate and oversampling settings for pressure and temperature */
+    sensorDevice.settings.odr_filter.press_os = BMP3_OVERSAMPLING_8X;
+    sensorDevice.settings.odr_filter.temp_os = BMP3_NO_OVERSAMPLING;
+    sensorDevice.settings.odr_filter.odr = BMP3_ODR_50_HZ;
+    sensorDevice.settings.odr_filter.iir_filter = BMP3_IIR_FILTER_COEFF_3;
+    /* Assign the settings which needs to be set in the sensor */
+    settings_sel = BMP3_PRESS_EN_SEL | BMP3_TEMP_EN_SEL | BMP3_PRESS_OS_SEL | BMP3_TEMP_OS_SEL | BMP3_ODR_SEL | BMP3_IIR_FILTER_SEL;
+    rslt = bmp3_set_sensor_settings(settings_sel, &sensorDevice);
+
+    /* Set the power mode to normal mode */
+    sensorDevice.settings.op_mode = BMP3_NORMAL_MODE;
+    rslt = bmp3_set_op_mode(&sensorDevice);
+
+    return rslt;
+}
+
+int8_t BMP388::setForcedMode() {
+    int8_t rslt;
+    /* Used to select the settings user needs to change */
+    uint16_t settings_sel;
+
+    /* Select the pressure and temperature sensor to be enabled */
+    sensorDevice.settings.press_en = BMP3_ENABLE;
+    sensorDevice.settings.temp_en = BMP3_ENABLE;
+    /* Assign the settings which needs to be set in the sensor */
+    settings_sel = BMP3_PRESS_EN_SEL | BMP3_TEMP_EN_SEL;
+    /* Write the settings in the sensor */
+    rslt = bmp3_set_sensor_settings(settings_sel, &sensorDevice);
+
+    /* Select the power mode */
+    sensorDevice.settings.op_mode = BMP3_FORCED_MODE;
+    /* Set the power mode in the sensor */
+    rslt = bmp3_set_op_mode(&sensorDevice);
+
+    return rslt;
 }
 
 /**************************************************************************/
@@ -116,7 +137,7 @@ bool BMP388::begin(uint8_t addr) {
  @return Temperature in degrees Centigrade
  */
 /**************************************************************************/
-float BMP388::readTemperature(void) {
+double BMP388::readTemperature(void) {
 	performReading();
 	return temperature;
 }
@@ -127,7 +148,7 @@ float BMP388::readTemperature(void) {
  @return Barometic pressure in Pascals
  */
 /**************************************************************************/
-float BMP388::readPressure(void) {
+double BMP388::readPressure(void) {
 	performReading();
 	return pressure;
 }
@@ -143,7 +164,7 @@ float BMP388::readPressure(void) {
  @return Altitude in meters
  */
 /**************************************************************************/
-float BMP388::readAltitude(float seaLevel) {
+double BMP388::readAltitude(double seaLevel) {
 	// Equation taken from BMP180 datasheet (page 16):
 	//  http://www.adafruit.com/datasheets/BST-BMP180-DS000-09.pdf
 
@@ -151,7 +172,7 @@ float BMP388::readAltitude(float seaLevel) {
 	// at high altitude. See this thread for more information:
 	//  http://forums.adafruit.com/viewtopic.php?f=22&t=58064
 
-	float atmospheric = readPressure() / 100.0F;
+	double atmospheric = readPressure() / 100.0F;
 	return 44330.0 * (1.0 - pow(atmospheric / seaLevel, 0.1903));
 }
 
@@ -165,54 +186,74 @@ float BMP388::readAltitude(float seaLevel) {
  */
 /**************************************************************************/
 bool BMP388::performReading(void) {
-	int8_t rslt;
-	/* Used to select the settings user needs to change */
-	uint16_t settings_sel = 0;
-	/* Variable used to select the sensor component */
-	uint8_t sensor_comp = 0;
+//	int8_t rslt;
+//	/* Used to select the settings user needs to change */
+//	uint16_t settings_sel = 0;
+//	/* Variable used to select the sensor component */
+//	uint8_t sensor_comp = 0;
+//
+//	/* Select the pressure and temperature sensor to be enabled */
+//	sensorDevice.settings.temp_en = BMP3_ENABLE;
+//	settings_sel |= BMP3_TEMP_EN_SEL;
+//	sensor_comp |= BMP3_TEMP;
+//	if (temperatureOversamplingEnabled) {
+//		settings_sel |= BMP3_TEMP_OS_SEL;
+//	}
+//
+//	sensorDevice.settings.press_en = BMP3_ENABLE;
+//	settings_sel |= BMP3_PRESS_EN_SEL;
+//	sensor_comp |= BMP3_PRESS;
+//	if (pressureOversamplingEnabled) {
+//		settings_sel |= BMP3_PRESS_OS_SEL;
+//	}
+//
+//	if (filterEnabled) {
+//		settings_sel |= BMP3_IIR_FILTER_SEL;
+//	}
+//
+//	if (outputDataRateEnabled) {
+//		settings_sel |= BMP3_ODR_SEL;
+//	}
+//
+//	// set interrupt to data ready
+//	//settings_sel |= BMP3_DRDY_EN_SEL | BMP3_LEVEL_SEL | BMP3_LATCH_SEL;
+//
+//	/* Set the desired sensor configuration */
+//	rslt = bmp3_set_sensor_settings(settings_sel, &sensorDevice);
+//	if (rslt != BMP3_OK)
+//		return false;
+//
+//	/* Set the power mode */
+//	sensorDevice.settings.op_mode = BMP3_FORCED_MODE;
+//	rslt = bmp3_set_op_mode(&sensorDevice);
+//	if (rslt != BMP3_OK)
+//		return false;
+//
+//	/* Variable used to store the compensated data */
+//	struct bmp3_data data;
+//
+//	/* Temperature and Pressure data are read and stored in the bmp3_data instance */
+//	rslt = bmp3_get_sensor_data(sensor_comp, &data, &sensorDevice);
 
-	/* Select the pressure and temperature sensor to be enabled */
-	sensorDevice.settings.temp_en = BMP3_ENABLE;
-	settings_sel |= BMP3_TEMP_EN_SEL;
-	sensor_comp |= BMP3_TEMP;
-	if (temperatureOversamplingEnabled) {
-		settings_sel |= BMP3_TEMP_OS_SEL;
-	}
+    int8_t rslt;
+    /* Variable used to select the sensor component */
+    uint8_t sensor_comp;
+    /* Variable used to store the compensated data */
+    struct bmp3_data data;
 
-	sensorDevice.settings.press_en = BMP3_ENABLE;
-	settings_sel |= BMP3_PRESS_EN_SEL;
-	sensor_comp |= BMP3_PRESS;
-	if (pressureOversamplingEnabled) {
-		settings_sel |= BMP3_PRESS_OS_SEL;
-	}
+    /* Sensor component selection */
+    sensor_comp = BMP3_PRESS | BMP3_TEMP;
+    /* Temperature and Pressure data are read and stored in the bmp3_data instance */
+    rslt = bmp3_get_sensor_data(sensor_comp, &data, &sensorDevice);
 
-	if (filterEnabled) {
-		settings_sel |= BMP3_IIR_FILTER_SEL;
-	}
-
-	if (outputDataRateEnabled) {
-		settings_sel |= BMP3_ODR_SEL;
-	}
-
-	// set interrupt to data ready
-	//settings_sel |= BMP3_DRDY_EN_SEL | BMP3_LEVEL_SEL | BMP3_LATCH_SEL;
-
-	/* Set the desired sensor configuration */
-	rslt = bmp3_set_sensor_settings(settings_sel, &sensorDevice);
-	if (rslt != BMP3_OK)
-		return false;
-
-	/* Set the power mode */
-	sensorDevice.settings.op_mode = BMP3_FORCED_MODE;
-	rslt = bmp3_set_op_mode(&sensorDevice);
-	if (rslt != BMP3_OK)
-		return false;
-
-	/* Variable used to store the compensated data */
-	struct bmp3_data data;
-
-	/* Temperature and Pressure data are read and stored in the bmp3_data instance */
-	rslt = bmp3_get_sensor_data(sensor_comp, &data, &sensorDevice);
+//    /* Print the temperature and pressure data */
+//    printf("Temperature in deg celsius\t Pressure in Pascal\t\n");
+//	#ifdef BMP3_DOUBLE_PRECISION_COMPENSATION
+//    printf("%0.2f\t\t %0.2f\t\t\n",data.temperature, data.pressure);
+//	#else
+//	/* for fixed point the compensated temperature and pressure output has a multiplication factor of 100 */
+//    printf("%lld\t\t %llu\t\t\n",data.temperature, data.pressure);
+//	#endif
 
 	/* Save the temperature and pressure data */
 	temperature = data.temperature;
@@ -313,8 +354,8 @@ bool BMP388::setOutputDataRate(uint8_t odr) {
  */
 /**************************************************************************/
 int8_t i2c_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint16_t len) {
-
 	if (HAL_I2C_Mem_Read(&hi2c1, dev_id, reg_addr, 1, reg_data, len, 1000) == HAL_OK) {
+		Error_Handler();
 	}
 
 	return 0;
@@ -326,14 +367,8 @@ int8_t i2c_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint16_t le
  */
 /**************************************************************************/
 int8_t i2c_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint16_t len) {
-
-//	uint8_t buffer[len + 1];
-//	buffer[0] = reg_addr;
-//	memcpy(buffer + 1, reg_data, len);
-//	if (HAL_I2C_Master_Transmit(&hi2c1, dev_id, buffer, sizeof(buffer), 1000000) == HAL_OK) {
-//	}
-
 	if (HAL_I2C_Mem_Write(&hi2c1, dev_id, reg_addr, 1, reg_data, len, 1000) == HAL_OK) {
+		Error_Handler();
 	}
 
 	return 0;

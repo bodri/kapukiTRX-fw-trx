@@ -29,6 +29,7 @@
 #include "usart.h"
 #include "gpio.h"
 #include "orientation/bno055.h"
+#include "altitude/bmp388.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -201,6 +202,10 @@ int main(void)
   BNO055 orientationSensor = BNO055();
   orientationSensor.begin();
 
+  BMP388 altitudeSensor = BMP388(BMP3_I2C_ADDR_SEC);
+  altitudeSensor.begin();
+  altitudeSensor.setNormalMode();
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -240,8 +245,10 @@ int main(void)
 //	  }
 
 	  HAL_Delay(100);
-	  int8_t temperature = orientationSensor.getTemperature();
-	  imu::Quaternion quaternion = orientationSensor.getQuaternion();
+//	  int8_t temperature = orientationSensor.getTemperature();
+//	  imu::Quaternion quaternion = orientationSensor.getQuaternion();
+	  double temperature = altitudeSensor.readTemperature();
+	  double altitude = altitudeSensor.readAltitude(1023);
 	  for (int i = 0; i < 100; i++) { };
   }
   /* USER CODE END 3 */
