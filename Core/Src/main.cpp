@@ -19,6 +19,7 @@
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
+#include <orientation/orientationsensor.h>
 #include <visualstatus.h>
 #include "main.h"
 #include "fdcan.h"
@@ -28,7 +29,6 @@
 #include "tim.h"
 #include "usart.h"
 #include "gpio.h"
-#include "orientation/bno055.h"
 #include "altitude/bmp388.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -199,7 +199,7 @@ int main(void)
   memset(buffer, 0, 5);
 //  unsigned short address = 0x0;
 
-  BNO055 orientationSensor = BNO055();
+  OrientationSensor orientationSensor = OrientationSensor();
   orientationSensor.begin();
 
   BMP388 altitudeSensor = BMP388(BMP3_I2C_ADDR_SEC);
@@ -245,10 +245,10 @@ int main(void)
 //	  }
 
 	  HAL_Delay(100);
-//	  int8_t temperature = orientationSensor.getTemperature();
-//	  imu::Quaternion quaternion = orientationSensor.getQuaternion();
-	  double temperature = altitudeSensor.readTemperature();
-	  double altitude = altitudeSensor.readAltitude(1023);
+	  int8_t temperature = orientationSensor.getTemperature();
+	  bno055_quaternion_t quaternion = orientationSensor.getQuaternion();
+//	  double temperature = altitudeSensor.readTemperature();
+//	  double altitude = altitudeSensor.readAltitude(1023);
 	  for (int i = 0; i < 100; i++) { };
   }
   /* USER CODE END 3 */
