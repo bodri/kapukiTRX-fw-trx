@@ -1,5 +1,5 @@
 /**
- * @file channel.h
+ * @file channel.cpp
  * @brief Channel data representation.
  *
  * @author Varadi, Gyorgy, aka bodri
