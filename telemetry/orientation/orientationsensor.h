@@ -20,13 +20,14 @@
 
 class OrientationSensor {
 public:
-	OrientationSensor(uint8_t address = BNO055_I2C_ADDR1) :
+	OrientationSensor(uint8_t i2cAddress = BNO055_I2C_ADDR1) :
 		i2cAddress(i2cAddress << 1)
 	{ }
 
 	bool start();
 
 	bno055_quaternion_t getQuaternion();
+	bno055_euler_double_t getEulerVector();
 	int8_t getTemperature();
 
 	void enterSuspendMode();

@@ -31,11 +31,12 @@ bool OrientationSensor::start() {
 		return false;
 	}
 
-	BNO055_RETURN_FUNCTION_TYPE result = BNO055_ERROR;
+	BNO055_RETURN_FUNCTION_TYPE result = BNO055_SUCCESS;
 	result += bno055_set_operation_mode(BNO055_OPERATION_MODE_CONFIG);
 
-//	//	Reset
-//	result += bno055_set_intr_rst(BNO055_BIT_ENABLE);
+	//	Reset
+	result += bno055_set_intr_rst(BNO055_BIT_ENABLE);
+	HAL_Delay(100);
 //	HAL_Delay(30);
 //	while (read8(BNO055_CHIP_ID_ADDR) != BNO055_ID) {
 //		HAL_Delay(10);
@@ -43,7 +44,8 @@ bool OrientationSensor::start() {
 //	HAL_Delay(50);
 
 	result += bno055_set_power_mode(BNO055_POWER_MODE_NORMAL);
-	result += bno055_set_clk_src(BNO055_BIT_ENABLE); // Use external oscillator
+	// Use external oscillator
+	result += bno055_set_clk_src(BNO055_BIT_ENABLE);
 	HAL_Delay(10);
 
 	result += bno055_set_operation_mode(BNO055_OPERATION_MODE_NDOF);
@@ -62,6 +64,12 @@ bno055_quaternion_t OrientationSensor::getQuaternion() {
 	bno055_quaternion_t quaternion_wxyz;
 	bno055_read_quaternion_wxyz(&quaternion_wxyz);
 	return quaternion_wxyz;
+}
+
+bno055_euler_double_t OrientationSensor::getEulerVector() {
+	struct bno055_euler_double_t d_euler_hpr;
+	bno055_convert_double_euler_hpr_deg(&d_euler_hpr);
+	return d_euler_hpr;
 }
 
 /*!

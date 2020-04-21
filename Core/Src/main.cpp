@@ -240,11 +240,12 @@ int main(void)
 //	  }
 
 	  HAL_Delay(100);
-//	  int8_t temperature = orientationSensor.getTemperature();
-//	  bno055_quaternion_t quaternion = orientationSensor.getQuaternion();
-	  altitudeSensor.performReading();
-	  double temperature = altitudeSensor.temperature;
-	  double pressure = altitudeSensor.pressure; //readAltitude(1023);
+	  int8_t temperature = orientationSensor.getTemperature();
+	  bno055_quaternion_t quaternion = orientationSensor.getQuaternion();
+	  bno055_euler_double_t vector = orientationSensor.getEulerVector();
+//	  altitudeSensor.performReading();
+//	  double temperature = altitudeSensor.temperature;
+//	  double pressure = altitudeSensor.pressure; //readAltitude(1023);
 	  for (int i = 0; i < 100; i++) { };
   }
   /* USER CODE END 3 */
