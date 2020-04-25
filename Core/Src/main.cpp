@@ -19,9 +19,6 @@
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
-#include <altitude/altitudesensor.h>
-#include <orientation/orientationsensor.h>
-#include <visualstatus.h>
 #include "main.h"
 #include "fdcan.h"
 #include "i2c.h"
@@ -30,8 +27,15 @@
 #include "tim.h"
 #include "usart.h"
 #include "gpio.h"
-#include "channel.h"
+
+/* Private includes ----------------------------------------------------------*/
+/* USER CODE BEGIN Includes */
+
 #include "rflink.h"
+#include "visualstatus.h"
+#include "channel.h"
+#include "orientation/orientationsensor.h"
+#include "altitude/altitudesensor.h"
 
 /* USER CODE END Includes */
 
@@ -132,10 +136,10 @@ int main(void)
   MX_TIM5_Init();
   MX_SPI2_Init();
   MX_FDCAN3_Init();
-  MX_I2C1_Init();
   MX_USART1_UART_Init();
   MX_TIM4_Init();
-//  MX_IWDG_Init();
+  MX_IWDG_Init();
+  MX_I2C3_Init();
   MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
 
@@ -296,10 +300,10 @@ void SystemClock_Config(void)
   /** Initializes the peripherals clocks 
   */
   PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART1|RCC_PERIPHCLK_USART3
-                              |RCC_PERIPHCLK_I2C1|RCC_PERIPHCLK_FDCAN;
+                              |RCC_PERIPHCLK_I2C3|RCC_PERIPHCLK_FDCAN;
   PeriphClkInit.Usart1ClockSelection = RCC_USART1CLKSOURCE_PCLK2;
   PeriphClkInit.Usart3ClockSelection = RCC_USART3CLKSOURCE_PCLK1;
-  PeriphClkInit.I2c1ClockSelection = RCC_I2C1CLKSOURCE_PCLK1;
+  PeriphClkInit.I2c3ClockSelection = RCC_I2C3CLKSOURCE_PCLK1;
   PeriphClkInit.FdcanClockSelection = RCC_FDCANCLKSOURCE_PCLK1;
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
   {

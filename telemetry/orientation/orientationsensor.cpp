@@ -10,12 +10,13 @@
  * MIT license, all text above must be included in any redistribution
  *
  */
+
+#include "orientationsensor.h"
 #include "main.h"
 #include "i2c.h"
 
-#include <limits.h>
-#include <math.h>
-#include "orientationsensor.h"
+#include <climits>
+#include <cmath>
 
 static s8 i2cRead(u8 dev_addr, u8 reg_addr, u8 *reg_data, u8 cnt);
 static s8 i2cWrite(u8 dev_addr, u8 reg_addr, u8 *reg_data, u8 cnt);
@@ -124,7 +125,7 @@ void OrientationSensor::enterNormalMode() {
 }
 
 static s8 i2cRead(u8 dev_addr, u8 reg_addr, u8 *reg_data, u8 cnt) {
-	if (HAL_I2C_Mem_Read(&hi2c1, dev_addr, reg_addr, 1, reg_data, cnt, 1000) == HAL_OK) {
+	if (HAL_I2C_Mem_Read(&hi2c3, dev_addr, reg_addr, 1, reg_data, cnt, 1000) == HAL_OK) {
 		Error_Handler();
 	}
 
@@ -132,7 +133,7 @@ static s8 i2cRead(u8 dev_addr, u8 reg_addr, u8 *reg_data, u8 cnt) {
 }
 
 static s8 i2cWrite(u8 dev_addr, u8 reg_addr, u8 *reg_data, u8 cnt) {
-	if (HAL_I2C_Mem_Write(&hi2c1, dev_addr, reg_addr, 1, reg_data, cnt, 1000) == HAL_OK) {
+	if (HAL_I2C_Mem_Write(&hi2c3, dev_addr, reg_addr, 1, reg_data, cnt, 1000) == HAL_OK) {
 		Error_Handler();
 	}
 

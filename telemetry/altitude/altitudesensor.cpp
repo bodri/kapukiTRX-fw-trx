@@ -11,7 +11,7 @@
  *
  */
 
-#include <altitude/altitudesensor.h>
+#include "altitudesensor.h"
 #include "main.h"
 #include "i2c.h"
 
@@ -91,7 +91,7 @@ bool AltitudeSensor::performReading(void) {
 }
 
 int8_t i2cRead(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint16_t len) {
-	if (HAL_I2C_Mem_Read(&hi2c1, dev_id, reg_addr, 1, reg_data, len, 1000) == HAL_OK) {
+	if (HAL_I2C_Mem_Read(&hi2c3, dev_id, reg_addr, 1, reg_data, len, 1000) == HAL_OK) {
 		Error_Handler();
 	}
 
@@ -99,7 +99,7 @@ int8_t i2cRead(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint16_t len
 }
 
 int8_t i2cWrite(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint16_t len) {
-	if (HAL_I2C_Mem_Write(&hi2c1, dev_id, reg_addr, 1, reg_data, len, 1000) == HAL_OK) {
+	if (HAL_I2C_Mem_Write(&hi2c3, dev_id, reg_addr, 1, reg_data, len, 1000) == HAL_OK) {
 		Error_Handler();
 	}
 
