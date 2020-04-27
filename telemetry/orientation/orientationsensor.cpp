@@ -46,8 +46,8 @@ bool OrientationSensor::start() {
 
 	result += bno055_set_power_mode(BNO055_POWER_MODE_NORMAL);
 	// Use external oscillator
-	result += bno055_set_clk_src(BNO055_BIT_ENABLE);
-	HAL_Delay(10);
+//	result += bno055_set_clk_src(BNO055_BIT_DISABLE);
+//	HAL_Delay(10);
 
 	result += bno055_set_operation_mode(BNO055_OPERATION_MODE_NDOF);
 	HAL_Delay(20);

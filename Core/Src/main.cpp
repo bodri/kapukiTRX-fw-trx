@@ -138,7 +138,7 @@ int main(void)
   MX_FDCAN3_Init();
   MX_USART1_UART_Init();
   MX_TIM4_Init();
-  MX_IWDG_Init();
+//  MX_IWDG_Init();
   MX_I2C3_Init();
   MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */

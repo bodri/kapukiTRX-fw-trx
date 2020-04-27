@@ -71,10 +71,6 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define LEDBLUE_Pin GPIO_PIN_4
 #define LEDBLUE_GPIO_Port GPIOE
-#define SDA_Pin GPIO_PIN_9
-#define SDA_GPIO_Port GPIOB
-#define SCL_Pin GPIO_PIN_8
-#define SCL_GPIO_Port GPIOB
 #define TXMODE_Pin GPIO_PIN_6
 #define TXMODE_GPIO_Port GPIOB
 #define CANRX_Pin GPIO_PIN_3
