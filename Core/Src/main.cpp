@@ -78,10 +78,6 @@ void SystemClock_Config(void);
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 
-//	uint16_t c = rfLink.rf1Module->getFirmwareVersion();
-//	uint16_t c2 = rfLink.rf2Module->getFirmwareVersion();
-//	HAL_GPIO_WritePin(PWMOE_GPIO_Port, PWMOE_Pin, GPIO_PIN_SET);
-
 	if (htim->Instance == TIM4) {
 		testData += testDirectionUp ? 10 : -10;
 		if (testData > 0xFFF) {
@@ -146,10 +142,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   // Check if this is a transmitter?
-//  if (HAL_GPIO_ReadPin(TXMODE_GPIO_Port, TXMODE_Pin) == GPIO_PIN_RESET) {
-//	  transmitter = false;
-//  }
-
+  transmitter = HAL_GPIO_ReadPin(TXMODE_GPIO_Port, TXMODE_Pin) == GPIO_PIN_SET ? false : true;
 
   Pin redLed = Pin(LEDRED_GPIO_Port, LEDRED_Pin);
   Pin greenLed = Pin(LEDGREEN_GPIO_Port, LEDGREEN_Pin);
@@ -197,15 +190,11 @@ int main(void)
 
 //  HAL_GPIO_WritePin(BNORESET_GPIO_Port, BNORESET_Pin, GPIO_PIN_SET);
 
-  unsigned char buffer[5];
-  memset(buffer, 0, 5);
-//  unsigned short address = 0x0;
-
-  OrientationSensor orientationSensor = OrientationSensor();
-  orientationSensor.start();
-
-  AltitudeSensor altitudeSensor = AltitudeSensor(BMP3_I2C_ADDR_SEC);
-  altitudeSensor.start();
+//  OrientationSensor orientationSensor = OrientationSensor();
+//  orientationSensor.start();
+//
+//  AltitudeSensor altitudeSensor = AltitudeSensor(BMP3_I2C_ADDR_SEC);
+//  altitudeSensor.start();
 
   /* USER CODE END 2 */
 
@@ -222,8 +211,8 @@ int main(void)
   HAL_TIM_Base_Start_IT(&htim4);  // Start heartbeat timer
   while (1)
   {
-//	rfLink->runLoop();
-//	visualStatus->runLoop();
+	rfLink->runLoop();
+	visualStatus->runLoop();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -245,14 +234,14 @@ int main(void)
 //		  address = 0;
 //	  }
 
-	  HAL_Delay(100);
-	  int8_t temperature = orientationSensor.getTemperature();
-	  bno055_quaternion_t quaternion = orientationSensor.getQuaternion();
-	  bno055_euler_double_t vector = orientationSensor.getEulerVector();
+//	  HAL_Delay(100);
+//	  int8_t temperature = orientationSensor.getTemperature();
+//	  bno055_quaternion_t quaternion = orientationSensor.getQuaternion();
+//	  bno055_euler_double_t vector = orientationSensor.getEulerVector();
 //	  altitudeSensor.performReading();
 //	  double temperature = altitudeSensor.temperature;
 //	  double pressure = altitudeSensor.pressure; //readAltitude(1023);
-	  for (int i = 0; i < 100; i++) { };
+//	  for (int i = 0; i < 100; i++) { };
   }
   /* USER CODE END 3 */
 }
