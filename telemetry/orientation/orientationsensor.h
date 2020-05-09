@@ -16,7 +16,7 @@
 
 
 #include "bno055.h"
-#include "imumaths.h"
+#include <stdint.h>
 
 class OrientationSensor {
 public:
