@@ -31,13 +31,6 @@ typedef struct {
 	uint8_t payload[39];
 } Packet;
 
-typedef struct {
-	int8_t rssiAverage;
-
-	uint8_t *begin() { return (uint8_t *)&rssiAverage; }
-	uint8_t *end() { return (uint8_t *)&rssiAverage + 1; }
-} TelemetryData;
-
 typedef enum {
 					INIT,
 					START,

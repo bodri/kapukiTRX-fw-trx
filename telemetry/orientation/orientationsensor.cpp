@@ -17,10 +17,33 @@
 
 #include <climits>
 #include <cmath>
+#include <memory>
 
 static s8 i2cRead(u8 dev_addr, u8 reg_addr, u8 *reg_data, u8 cnt);
 static s8 i2cWrite(u8 dev_addr, u8 reg_addr, u8 *reg_data, u8 cnt);
 static void delayMilliSeconds(u32 msec);
+
+OrientationSensor::OrientationSensor(uint8_t i2cAddress) :
+	i2cAddress(i2cAddress << 1) {
+	TelemetryData *sensor = new TelemetryData(0, "Orientation", "", int8_tdt, 0);
+	temperature = new TelemetryData(1, "Temperature", "°C", int8_tdt, 0);
+	yawAngle = new TelemetryData(2, "Yaw angle", "°", int16_tdt, 2);
+	pitchAngle = new TelemetryData(3, "Pitch angle", "°", int16_tdt, 2);
+	rollAngle = new TelemetryData(4, "Roll angle", "°", int16_tdt, 2);
+
+	this->telemetryDataArray = {
+		  sensor,
+		  temperature,
+		  yawAngle,
+		  pitchAngle,
+		  rollAngle
+	};
+
+	// Calculate size
+	for (auto &telemetryData : telemetryDataArray) {
+		telemetryDataSize += telemetryData->valueSize();
+	}
+}
 
 bool OrientationSensor::start() {
 	sensorDevice.dev_addr = i2cAddress;
@@ -53,6 +76,31 @@ bool OrientationSensor::start() {
 	HAL_Delay(20);
 
 	return result == BNO055_SUCCESS;
+}
+
+std::string OrientationSensor::getDescription() {
+	return "";
+}
+
+size_t OrientationSensor::dataSize() {
+	return telemetryDataSize;
+}
+
+std::string OrientationSensor::getData() {
+	std::string buffer;
+
+	s8 temp = getTemperature();
+	bno055_euler_double_t eulerVector = getEulerVector();
+	temperature->setValue(temp);
+	yawAngle->setValue((int16_t)(eulerVector.h * 100));
+	pitchAngle->setValue((int16_t)(eulerVector.r * 100));
+	rollAngle->setValue((int16_t)(eulerVector.p * 100));
+
+	for (auto &telemetryData : telemetryDataArray) {
+		buffer.append(telemetryData->getValueRepresentation());
+	}
+
+	return buffer;
 }
 
 int8_t OrientationSensor::getTemperature() {

@@ -349,14 +349,9 @@ void RfLink::sendPacket(void) {
 			onTransmit(packet);
 		}
     } else {
-    	// send telemetry packet
-    	TelemetryData data { 0 };
-
-    	data.rssiAverage = rssiReceivedCount > 0 ? rssiAverage / rssiReceivedCount : 0; // Add RSSI
-    	rssiAverage = 0;
-    	rssiReceivedCount = 0;
-
-    	std::copy(std::begin(data), std::end(data), std::begin(packet.payload));
+		if (onTransmitTelemetry != nullptr) {
+			onTransmitTelemetry(packet);
+		}
     }
 
     rfModule->send((uint8_t *)&packet, sizeof(Packet));

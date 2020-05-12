@@ -17,10 +17,29 @@
 
 #include <cmath>
 #include <cstring>
+#include <optional>
 
 static int8_t i2cWrite(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint16_t len);
 static int8_t i2cRead(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint16_t len);
 static void delayMilliSeconds(uint32_t ms);
+
+AltitudeSensor::AltitudeSensor(uint8_t i2cAddress) :
+	i2cAddress(i2cAddress << 1) {
+	TelemetryData *sensor = new TelemetryData(0, "Vario", "", int8_tdt, 0);
+	temperature = new TelemetryData(1, "Temperature", "°C", int8_tdt, 0);
+	pressure = new TelemetryData(2, "Pressure", "°", int16_tdt, 2);
+
+	this->telemetryDataArray = {
+		  sensor,
+		  temperature,
+		  pressure,
+	};
+
+	// Calculate size
+	for (auto &telemetryData : telemetryDataArray) {
+		telemetryDataSize += telemetryData->valueSize();
+	}
+}
 
 bool AltitudeSensor::start() {
 	sensorDevice.dev_id = i2cAddress;
@@ -54,40 +73,51 @@ bool AltitudeSensor::start() {
     return true;
 }
 
-double AltitudeSensor::readTemperature(void) {
-	performReading();
-	return temperature;
+std::string AltitudeSensor::getDescription() {
+	return "";
 }
 
-double AltitudeSensor::readPressure(void) {
-	performReading();
-	return pressure;
+size_t AltitudeSensor::dataSize() {
+	return telemetryDataSize;
 }
 
-double AltitudeSensor::readAltitude(double seaLevel) {
-	// Equation taken from BMP180 datasheet (page 16):
-	//  http://www.adafruit.com/datasheets/BST-BMP180-DS000-09.pdf
+std::string AltitudeSensor::getData() {
+	std::string buffer;
 
-	// Note that using the equation from wikipedia can give bad results
-	// at high altitude. See this thread for more information:
-	//  http://forums.adafruit.com/viewtopic.php?f=22&t=58064
+	std::shared_ptr<bmp3_data> data = performReading();
+	if (data) {
+		temperature->setValue((int8_t)data->temperature);
+		pressure->setValue((int16_t)data->temperature);
 
-	double atmospheric = readPressure() / 100.0F;
-	return 44330.0 * (1.0 - pow(atmospheric / seaLevel, 0.1903));
+		for (auto &telemetryData : telemetryDataArray) {
+			buffer.append(telemetryData->getValueRepresentation());
+		}
+	}
+
+	return buffer;
 }
 
-bool AltitudeSensor::performReading(void) {
+//double AltitudeSensor::readAltitude(double seaLevel) {
+//	// Equation taken from BMP180 datasheet (page 16):
+//	//  http://www.adafruit.com/datasheets/BST-BMP180-DS000-09.pdf
+//
+//	// Note that using the equation from wikipedia can give bad results
+//	// at high altitude. See this thread for more information:
+//	//  http://forums.adafruit.com/viewtopic.php?f=22&t=58064
+//
+//	double atmospheric = readPressure() / 100.0F;
+//	return 44330.0 * (1.0 - pow(atmospheric / seaLevel, 0.1903));
+//}
+
+std::shared_ptr<bmp3_data> AltitudeSensor::performReading(void) {
     struct bmp3_data data;
 
     uint8_t sensorComponent = BMP3_PRESS | BMP3_TEMP;
     if (bmp3_get_sensor_data(sensorComponent, &data, &sensorDevice) != BMP3_OK) {
-    	return false;
+    	return nullptr;
     }
 
-	temperature = data.temperature;
-	pressure = data.pressure;
-
-	return true;
+	return std::make_shared<bmp3_data>(data);
 }
 
 int8_t i2cRead(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint16_t len) {

@@ -15,27 +15,30 @@
 #define __ALTITUDESENSOR_H__
 
 #include "bmp3.h"
+#include "sensor.h"
 
-class AltitudeSensor {
+#include <vector>
+#include <memory>
+
+class AltitudeSensor : public Sensor {
 public:
-	AltitudeSensor(uint8_t i2cAddress = BMP3_I2C_ADDR_PRIM) :
-		i2cAddress(i2cAddress << 1)
-	{ }
+	AltitudeSensor(uint8_t i2cAddress = BMP3_I2C_ADDR_PRIM);
 
-	bool start();
-
-	double readTemperature(void);
-	double readPressure(void);
-	double readAltitude(double seaLevel);
-
-	bool performReading(void);
-
-	double temperature;
-	double pressure;
+	virtual bool start() override;
+	virtual size_t dataSize() override;
+	virtual std::string getDescription() override;
+	virtual std::string getData() override;
 
 private:
 	uint8_t i2cAddress;
 	struct bmp3_dev sensorDevice;
+
+	TelemetryData *temperature;
+	TelemetryData *pressure;
+	std::vector<TelemetryData *> telemetryDataArray;
+	size_t telemetryDataSize { 0 };
+
+	std::shared_ptr<bmp3_data> performReading(void);
 };
 
 #endif //__ALTITUDESENSOR_H__

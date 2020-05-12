@@ -35,6 +35,7 @@
 #include "rflink.h"
 #include "visualstatus.h"
 #include "channel.h"
+#include "telemetry.h"
 #include "orientation/orientationsensor.h"
 #include "altitude/altitudesensor.h"
 
@@ -61,6 +62,7 @@
 bool transmitter { false };
 RfLink *rfLink;
 VisualStatus *visualStatus;
+Telemetry *telemetry;
 
 int16_t testData { 0 };
 bool testDirectionUp { true };
@@ -149,6 +151,20 @@ int main(void)
   Pin blueLed = Pin(LEDBLUE_GPIO_Port, LEDBLUE_Pin);
   visualStatus = new VisualStatus(&htim4, redLed, greenLed, blueLed);
 
+  //  HAL_GPIO_WritePin(BNORESET_GPIO_Port, BNORESET_Pin, GPIO_PIN_SET);
+
+  // Setup telemetry
+  OrientationSensor *orientationSensor = new OrientationSensor();
+
+  //  orientationSensor.start();
+  //
+  //  AltitudeSensor altitudeSensor = AltitudeSensor(BMP3_I2C_ADDR_SEC);
+  //  altitudeSensor.start();
+
+  telemetry = new Telemetry({
+	  orientationSensor
+  });
+
 	rfLink = new RfLink(&htim4, transmitter);
 	rfLink->init();
 	rfLink->onTransmit = [](Packet &packet) {
@@ -157,6 +173,9 @@ int main(void)
 			channel.value = testData;
 		}
 		channelData.fillRawChannelData(packet);
+	};
+	rfLink->onTransmitTelemetry = [](Packet &packet) {
+		telemetry->composeTelemetryPacket(packet);
 	};
 	rfLink->onReceive = [](Packet &packet) {
 		ChannelData channelData = ChannelData(packet);
@@ -187,14 +206,6 @@ int main(void)
 //  HAL_GPIO_WritePin(LEDBLUE_GPIO_Port, LEDBLUE_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin(RFPOWEREN_GPIO_Port, RFPOWEREN_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(PWMOE_GPIO_Port, PWMOE_Pin, GPIO_PIN_SET);
-
-//  HAL_GPIO_WritePin(BNORESET_GPIO_Port, BNORESET_Pin, GPIO_PIN_SET);
-
-//  OrientationSensor orientationSensor = OrientationSensor();
-//  orientationSensor.start();
-//
-//  AltitudeSensor altitudeSensor = AltitudeSensor(BMP3_I2C_ADDR_SEC);
-//  altitudeSensor.start();
 
   /* USER CODE END 2 */
 
