@@ -261,19 +261,26 @@ bool RfLink::loadReceivedPacket(SX1280 *rfModule) {
 
 	rfModule->getPayload(payload, &size, sizeof(payload));
 	if (size == sizeof(Packet)) {
-		if (onReceive != nullptr) {
-			Packet packet;
-			memcpy(&packet.status, &payload[0], 2);
-			memcpy(&packet.payload[0], &payload[2], 6);
-			onReceive(packet);
-
-			if (!transmitter) {
-				this->packetNumber = packet.status.packetNumber; // sync packetNumber with TX
-//				this->rssiAverage += packetStatus.Flrc.RssiAvg; // save RSSI for telemetry purposes
-//				this->rssiReceivedCount++;
+		Packet packet;
+		memcpy(&packet.status, &payload[0], 2);
+		memcpy(&packet.payload[0], &payload[2], 16);
+		if (transmitter) {
+			if (onReceiveTelemetry != nullptr) {
+				onReceiveTelemetry(packet);
+				return true;
 			}
+		} else {
+			if (onReceive != nullptr) {
+				onReceive(packet);
 
-			return true;
+				if (!transmitter) {
+					this->packetNumber = packet.status.packetNumber; // sync packetNumber with TX
+	//				this->rssiAverage += packetStatus.Flrc.RssiAvg; // save RSSI for telemetry purposes
+	//				this->rssiReceivedCount++;
+				}
+
+				return true;
+			}
 		}
 	}
 

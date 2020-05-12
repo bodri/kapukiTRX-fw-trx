@@ -89,6 +89,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 			testData = 0;
 			testDirectionUp = true;
 		}
+
+		if (!transmitter) {
+			telemetry->processHeartBeat();
+		}
 	}
 
 	rfLink->processHeartBeat(htim);
@@ -153,17 +157,15 @@ int main(void)
 
   //  HAL_GPIO_WritePin(BNORESET_GPIO_Port, BNORESET_Pin, GPIO_PIN_SET);
 
-  // Setup telemetry
-  OrientationSensor *orientationSensor = new OrientationSensor();
+	if (!transmitter) {
+		// Setup telemetry
+		OrientationSensor *orientationSensor = new OrientationSensor();
+		//  AltitudeSensor altitudeSensor = AltitudeSensor(BMP3_I2C_ADDR_SEC);
 
-  //  orientationSensor.start();
-  //
-  //  AltitudeSensor altitudeSensor = AltitudeSensor(BMP3_I2C_ADDR_SEC);
-  //  altitudeSensor.start();
-
-  telemetry = new Telemetry({
-	  orientationSensor
-  });
+		telemetry = new Telemetry({
+		  orientationSensor
+		});
+	}
 
 	rfLink = new RfLink(&htim4, transmitter);
 	rfLink->init();
@@ -197,6 +199,9 @@ int main(void)
 		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_2, pwm6);
 		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_3, pwm7);
 		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_4, pwm8);
+	};
+	rfLink->onReceiveTelemetry = [](Packet &packet) {
+		for (int i = 0; i < 10; i++) { }
 	};
 
 	rfLink->onLinkStatusChange = [](bool tracking) {
