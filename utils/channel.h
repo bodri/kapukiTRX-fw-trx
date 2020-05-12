@@ -21,7 +21,7 @@
 
 class Channel {
 public:
-	Channel(uint16_t value):value(value) { }
+	Channel(uint16_t value) : value(value) { }
 	~Channel() { }
 
 	uint16_t value;
@@ -29,17 +29,16 @@ public:
 
 class ChannelData {
 public:
-	ChannelData() { }
-	~ChannelData() { }
+	ChannelData(uint8_t numberOfChannels);
+	~ChannelData();
 
-	ChannelData (const Packet& packet);
-	ChannelData& operator= (const Packet& packet) {return *this;}
+	ChannelData &operator= (const Packet& packet);
 
-	Channel& operator[](int index) { return channels.at(index);}
+	Channel *operator[](int index) { return channels.at(index); }
 
 	void fillRawChannelData(Packet &packet);
 
-	std::vector<Channel> channels;
+	std::vector<Channel *> channels;
 };
 
 #endif // __CHANNEL_H__

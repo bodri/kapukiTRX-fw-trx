@@ -62,6 +62,7 @@
 bool transmitter { false };
 RfLink *rfLink;
 VisualStatus *visualStatus;
+ChannelData *channelData;
 Telemetry *telemetry;
 
 int16_t testData { 0 };
@@ -157,6 +158,9 @@ int main(void)
 
   //  HAL_GPIO_WritePin(BNORESET_GPIO_Port, BNORESET_Pin, GPIO_PIN_SET);
 
+	// Setup channels
+	channelData = new ChannelData(26);
+
 	if (!transmitter) {
 		// Setup telemetry
 		OrientationSensor *orientationSensor = new OrientationSensor();
@@ -170,26 +174,25 @@ int main(void)
 	rfLink = new RfLink(&htim4, transmitter);
 	rfLink->init();
 	rfLink->onTransmit = [](Packet &packet) {
-		ChannelData channelData = ChannelData();
-		for (auto channel : channelData.channels) {
-			channel.value = testData;
+		for (unsigned i = 0; i < 8; i++) {
+			(*channelData)[i]->value = testData;
 		}
-		channelData.fillRawChannelData(packet);
+		channelData->fillRawChannelData(packet);
 	};
 	rfLink->onTransmitTelemetry = [](Packet &packet) {
 		telemetry->composeTelemetryPacket(packet);
 	};
 	rfLink->onReceive = [](Packet &packet) {
-		ChannelData channelData = ChannelData(packet);
+		*channelData = packet;
 		float resolution = 139999.0f / 4095.0f;
-		float pwm1 = 139999 + channelData[0].value * resolution;
-		float pwm2 = 139999 + channelData[1].value * resolution;
-		float pwm3 = 139999 + channelData[2].value * resolution;
-		float pwm4 = 139999 + channelData[3].value * resolution;
-		float pwm5 = 139999 + channelData[4].value * resolution;
-		float pwm6 = 139999 + channelData[5].value * resolution;
-		float pwm7 = 139999 + channelData[6].value * resolution;
-		float pwm8 = 139999 + channelData[7].value * resolution;
+		float pwm1 = 139999 + (*channelData)[0]->value * resolution;
+		float pwm2 = 139999 + (*channelData)[1]->value * resolution;
+		float pwm3 = 139999 + (*channelData)[2]->value * resolution;
+		float pwm4 = 139999 + (*channelData)[3]->value * resolution;
+		float pwm5 = 139999 + (*channelData)[4]->value * resolution;
+		float pwm6 = 139999 + (*channelData)[5]->value * resolution;
+		float pwm7 = 139999 + (*channelData)[6]->value * resolution;
+		float pwm8 = 139999 + (*channelData)[7]->value * resolution;
 
 		__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, pwm1);
 		__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_2, pwm2);
