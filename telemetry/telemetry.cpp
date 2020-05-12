@@ -38,7 +38,7 @@ void Telemetry::composeTelemetryPacket(Packet &packet) {
 		}
 	}
 
-	memcpy(packet.payload, data.c_str(), sizeof(packet.payload));
+	strncpy((char *)packet.payload, data.c_str(), sizeof(packet.payload));
 }
 
 
