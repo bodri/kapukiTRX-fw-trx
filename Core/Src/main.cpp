@@ -59,7 +59,7 @@
 
 /* USER CODE BEGIN PV */
 
-bool transmitter { false };
+bool transmitter { true };
 RfLink *rfLink;
 VisualStatus *visualStatus;
 ChannelData *channelData;
@@ -149,7 +149,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   // Check if this is a transmitter?
-  transmitter = HAL_GPIO_ReadPin(TXMODE_GPIO_Port, TXMODE_Pin) == GPIO_PIN_SET ? false : true;
+//  transmitter = HAL_GPIO_ReadPin(TXMODE_GPIO_Port, TXMODE_Pin) == GPIO_PIN_SET ? false : true;
 
   Pin redLed = Pin(LEDRED_GPIO_Port, LEDRED_Pin);
   Pin greenLed = Pin(LEDGREEN_GPIO_Port, LEDGREEN_Pin);
@@ -205,7 +205,11 @@ int main(void)
 		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_4, pwm8);
 	};
 	rfLink->onReceiveTelemetry = [](Packet &packet) {
-		for (int i = 0; i < 10; i++) { }
+		char buffer[128];
+		sprintf(buffer, "t:%d,y:%d,p:%d,r:%d", packet.payload[1], ((packet.payload[4] << 8) + packet.payload[3])/100, ((packet.payload[7] << 8) + packet.payload[6])/100, ((packet.payload[10] << 8) + packet.payload[9])/100);
+		if (HAL_UART_Transmit(&huart3, (uint8_t *)buffer, strlen(buffer), 1000) != HAL_OK) {
+			Error_Handler();
+		}
 	};
 
 	rfLink->onLinkStatusChange = [](bool tracking) {

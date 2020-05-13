@@ -41,7 +41,7 @@ OrientationSensor::OrientationSensor(uint8_t i2cAddress) :
 
 	// Calculate size
 	for (auto &telemetryData : telemetryDataArray) {
-		telemetryDataSize += telemetryData->valueSize();
+		telemetryDataSize += telemetryData->valueSize() + 1;
 	}
 }
 
