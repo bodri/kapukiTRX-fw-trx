@@ -178,6 +178,7 @@ int main(void)
 			(*channelData)[i]->value = testData;
 		}
 		channelData->fillRawChannelData(packet);
+		for (int i = 0; i < 10; i++) { }
 	};
 	rfLink->onTransmitTelemetry = [](Packet &packet) {
 		telemetry->composeTelemetryPacket(packet);
