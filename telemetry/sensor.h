@@ -36,12 +36,12 @@ struct TelemetryDataHeader {
 	}
 };
 
-enum TelemetryDataType {
+typedef enum {
 	int8_tdt = 0, // [-128, 127]
 	int16_tdt, // [-32768, 32767]
 	int24_tdt, // [-8388608, 8388607]
 	int32_tdt, // [-2147483648, 2147483647]
-};
+} TelemetryDataType;
 
 class TelemetryData {
 public:
@@ -56,14 +56,6 @@ public:
 		header.type = dataType;
 		header.decimalPointPosition = decimalPointPosition & 0x3;
 		this->header = header;
-	}
-
-	void setValue(int8_t value) {
-		this->value = value;
-	}
-
-	void setValue(int16_t value) {
-		this->value = value;
 	}
 
 	void setValue(int32_t value) {

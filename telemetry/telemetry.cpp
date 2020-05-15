@@ -107,6 +107,6 @@ TelemetryData *Telemetry::findOrCreateTelemetryData(Sensor *sensor, uint8_t head
 		return *it;
 	} else {
 		// create new telemetry data
-		return new TelemetryData(position, "", "", static_cast<TelemetryDataType>(type), 0);
+		return new TelemetryData(position, "", "", TelemetryDataType(type), 0);
 	}
 }
