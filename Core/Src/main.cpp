@@ -164,10 +164,11 @@ int main(void)
 	if (!transmitter) {
 		// Setup telemetry
 		OrientationSensor *orientationSensor = new OrientationSensor();
-		//  AltitudeSensor altitudeSensor = AltitudeSensor(BMP3_I2C_ADDR_SEC);
+		AltitudeSensor *altitudeSensor = new AltitudeSensor(BMP3_I2C_ADDR_SEC);
 
 		telemetry = new Telemetry({
-		  orientationSensor
+		  orientationSensor,
+		  altitudeSensor
 		});
 	}
 

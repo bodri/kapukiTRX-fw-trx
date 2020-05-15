@@ -27,7 +27,6 @@
 #include "sensor.h"
 
 #include <stdint.h>
-#include <vector>
 
 class OrientationSensor : public Sensor {
 public:
@@ -46,7 +45,6 @@ private:
 	TelemetryData *yawAngle;
 	TelemetryData *pitchAngle;
 	TelemetryData *rollAngle;
-	std::vector<TelemetryData *> telemetryDataArray;
 	size_t telemetryDataSize { 0 };
 
 	int8_t getTemperature();

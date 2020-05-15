@@ -39,6 +39,10 @@ AltitudeSensor::AltitudeSensor(uint8_t i2cAddress) :
 	for (auto &telemetryData : telemetryDataArray) {
 		telemetryDataSize += telemetryData->valueSize();
 	}
+
+	sensorInfo.identifier = 0x2;
+	sensorInfo.numberOfTelemetryData = telemetryDataArray.size() - 1;
+	telemetryDataSize += 2; // + sensorInfo
 }
 
 bool AltitudeSensor::start() {
@@ -89,6 +93,9 @@ std::string AltitudeSensor::getData() {
 		temperature->setValue((int8_t)data->temperature);
 		pressure->setValue((int16_t)data->temperature);
 
+		buffer.resize(2);
+		buffer[0] = (uint16_t)sensorInfo;
+		buffer[0] = (uint16_t)sensorInfo >> 8;
 		for (auto &telemetryData : telemetryDataArray) {
 			buffer.append(telemetryData->getValueRepresentation());
 		}

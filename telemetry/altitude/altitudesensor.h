@@ -17,7 +17,6 @@
 #include "bmp3.h"
 #include "sensor.h"
 
-#include <vector>
 #include <memory>
 
 class AltitudeSensor : public Sensor {
@@ -35,7 +34,6 @@ private:
 
 	TelemetryData *temperature;
 	TelemetryData *pressure;
-	std::vector<TelemetryData *> telemetryDataArray;
 	size_t telemetryDataSize { 0 };
 
 	std::shared_ptr<bmp3_data> performReading(void);

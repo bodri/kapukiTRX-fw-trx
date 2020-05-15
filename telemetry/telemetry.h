@@ -27,10 +27,15 @@ public:
 
 	void processHeartBeat();
 
+	Telemetry &operator= (const Packet& packet);
+
 	void composeTelemetryPacket(Packet &packet);
 
 private:
 	std::vector<Sensor *> sensors { };
+
+	Sensor *findOrCreateRemoteSensor(uint16_t sensorInfoData);
+	TelemetryData *findOrCreateTelemetryData(Sensor *sensor, uint8_t headerData);
 };
 
 
