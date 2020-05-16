@@ -28,7 +28,7 @@ typedef struct {
 		uint16_t packetNumber : 10;
 	} status;
 
-	uint8_t payload[39];
+	uint8_t payload[127];
 } Packet;
 
 typedef enum {
@@ -113,11 +113,11 @@ private:
 	void setTracking(bool tracking);
 	void adjustTimerToTrackTx(void);
 	void registerLostPacket(void);
-	void sendPacket(void);
+	void sendPacket(size_t size);
 	void enterRx(void);
 
 	void setPacketParams(bool telemetryPacket);
-	void setNormalPacketParams(SX1280 *rfModule);
+	void setNormalPacketParams(SX1280 *rfModule, uint8_t length);
 	void setTelemetryPacketParams(SX1280 *rfModule, uint8_t length);
 };
 

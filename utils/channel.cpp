@@ -28,7 +28,7 @@ ChannelData::~ChannelData() {
 
 ChannelData &ChannelData::operator= (const Packet& packet) {
 	int channelPointer { 0 };
-	for (auto pointer = packet.payload; pointer < packet.payload + sizeof(packet.payload); pointer += 3) {
+	for (auto pointer = packet.payload; pointer < packet.payload + 39 /*sizeof(packet.payload)*/; pointer += 3) {
 		channels[channelPointer++]->value = pointer[0] | ((pointer[2] & 0x0F) << 8);
 		channels[channelPointer++]->value = pointer[1] | ((pointer[2] & 0xF0) << 4);
 	}

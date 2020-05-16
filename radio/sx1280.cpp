@@ -51,7 +51,7 @@ void SX1280::init(void) {
     packetParams.Params.Flrc.SyncWordLength = FLRC_SYNCWORD_LENGTH_4_BYTE;
     packetParams.Params.Flrc.SyncWordMatch = RADIO_RX_MATCH_SYNCWORD_1;
     packetParams.Params.Flrc.HeaderType = RADIO_PACKET_FIXED_LENGTH;
-    packetParams.Params.Flrc.PayloadLength = sizeof(Packet);
+    packetParams.Params.Flrc.PayloadLength = 42;
     packetParams.Params.Flrc.CrcLength = RADIO_CRC_2_BYTES;
     packetParams.Params.Flrc.Whitening = RADIO_WHITENING_OFF;
 

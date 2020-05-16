@@ -149,7 +149,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   // Check if this is a transmitter?
-//  transmitter = HAL_GPIO_ReadPin(TXMODE_GPIO_Port, TXMODE_Pin) == GPIO_PIN_SET ? false : true;
+  transmitter = HAL_GPIO_ReadPin(TXMODE_GPIO_Port, TXMODE_Pin) == GPIO_PIN_SET ? false : true;
 
   Pin redLed = Pin(LEDRED_GPIO_Port, LEDRED_Pin);
   Pin greenLed = Pin(LEDGREEN_GPIO_Port, LEDGREEN_Pin);
