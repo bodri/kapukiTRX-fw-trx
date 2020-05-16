@@ -160,9 +160,17 @@ void RfLink::runLoop(void) {
 		rf2Module->setChannel(nextChannel);
 
 		// sendPacket xxx us, enterRx: 153 us
-		state = shouldSendPacket() ? WAITING_FOR_TX_OFFSET : ENTER_RX;
+		state = SET_PACKET_PARAMS;
 		HAL_GPIO_WritePin(SYNC_GPIO_Port, SYNC_Pin, GPIO_PIN_RESET);
 
+	}
+		break;
+	case SET_PACKET_PARAMS: {
+		bool shouldSend = shouldSendPacket();
+		bool telemetryPacket = (transmitter && !shouldSend) || (!transmitter && shouldSend);
+		// TODO: optimize: if no change in packet type, we should not set the same again
+		setPacketParams(telemetryPacket);
+		state = shouldSend ? WAITING_FOR_TX_OFFSET : ENTER_RX;
 	}
 		break;
 	case WAITING_FOR_TX_OFFSET:
@@ -375,4 +383,42 @@ void RfLink::enterRx(void) {
     rf2Module->enterRx();
 
 //    HAL_GPIO_WritePin(SYNC_GPIO_Port, SYNC_Pin, GPIO_PIN_RESET);
+}
+
+void RfLink::setPacketParams(bool telemetryPacket) {
+	if (telemetryPacket) {
+		setNormalPacketParams(rf1Module);
+		setNormalPacketParams(rf2Module);
+	} else {
+		setTelemetryPacketParams(rf1Module, 21);
+		setTelemetryPacketParams(rf2Module, 21);
+	}
+}
+
+void RfLink::setNormalPacketParams(SX1280 *rfModule) {
+    PacketParams_t packetParams;
+    packetParams.PacketType = PACKET_TYPE_FLRC;
+    packetParams.Params.Flrc.PreambleLength = PREAMBLE_LENGTH_32_BITS;
+    packetParams.Params.Flrc.SyncWordLength = FLRC_SYNCWORD_LENGTH_4_BYTE;
+    packetParams.Params.Flrc.SyncWordMatch = RADIO_RX_MATCH_SYNCWORD_1;
+    packetParams.Params.Flrc.HeaderType = RADIO_PACKET_FIXED_LENGTH;
+    packetParams.Params.Flrc.PayloadLength = sizeof(Packet);
+    packetParams.Params.Flrc.CrcLength = RADIO_CRC_2_BYTES;
+    packetParams.Params.Flrc.Whitening = RADIO_WHITENING_OFF;
+
+    rfModule->setPacketParams(&packetParams);
+}
+
+void RfLink::setTelemetryPacketParams(SX1280 *rfModule, uint8_t length) {
+    PacketParams_t packetParams;
+    packetParams.PacketType = PACKET_TYPE_FLRC;
+    packetParams.Params.Flrc.PreambleLength = PREAMBLE_LENGTH_32_BITS;
+    packetParams.Params.Flrc.SyncWordLength = FLRC_SYNCWORD_LENGTH_4_BYTE;
+    packetParams.Params.Flrc.SyncWordMatch = RADIO_RX_MATCH_SYNCWORD_1;
+    packetParams.Params.Flrc.HeaderType = RADIO_PACKET_VARIABLE_LENGTH;
+    packetParams.Params.Flrc.PayloadLength = length;
+    packetParams.Params.Flrc.CrcLength = RADIO_CRC_2_BYTES;
+    packetParams.Params.Flrc.Whitening = RADIO_WHITENING_OFF;
+
+    rfModule->setPacketParams(&packetParams);
 }

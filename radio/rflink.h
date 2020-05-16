@@ -34,6 +34,7 @@ typedef struct {
 typedef enum {
 					INIT,
 					START,
+					SET_PACKET_PARAMS,
 	// Tx							// Rx
 	WAITING_FOR_TX_OFFSET,			ENTER_RX,
 					IDLE,
@@ -114,6 +115,10 @@ private:
 	void registerLostPacket(void);
 	void sendPacket(void);
 	void enterRx(void);
+
+	void setPacketParams(bool telemetryPacket);
+	void setNormalPacketParams(SX1280 *rfModule);
+	void setTelemetryPacketParams(SX1280 *rfModule, uint8_t length);
 };
 
 #endif // __RFLINK_H__
