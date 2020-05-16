@@ -27,7 +27,7 @@ AltitudeSensor::AltitudeSensor(uint8_t i2cAddress) :
 	i2cAddress(i2cAddress << 1) {
 	TelemetryData *sensor = new TelemetryData(0, "Vario", "", int8_tdt, 0);
 	temperature = new TelemetryData(1, "Temperature", "°C", int8_tdt, 0);
-	pressure = new TelemetryData(2, "Pressure", "°", int16_tdt, 2);
+	pressure = new TelemetryData(2, "Pressure", "°", int24_tdt, 2);
 
 	this->telemetryDataArray = {
 		  sensor,
@@ -37,12 +37,13 @@ AltitudeSensor::AltitudeSensor(uint8_t i2cAddress) :
 
 	// Calculate size
 	for (auto &telemetryData : telemetryDataArray) {
-		telemetryDataSize += telemetryData->valueSize();
+		telemetryDataSize += telemetryData->valueSize() + 1;
 	}
 
 	sensorInfo.identifier = 0x2;
 	sensorInfo.numberOfTelemetryData = telemetryDataArray.size() - 1;
 	telemetryDataSize += 2; // + sensorInfo
+	telemetryDataSize -= 1; //////////////////////////////////////////////////////////// WTF???
 }
 
 bool AltitudeSensor::start() {
@@ -91,11 +92,11 @@ std::string AltitudeSensor::getData() {
 	std::shared_ptr<bmp3_data> data = performReading();
 	if (data) {
 		temperature->setValue((int8_t)data->temperature);
-		pressure->setValue((int16_t)data->temperature);
+		pressure->setValue((int32_t)data->pressure);
 
 		buffer.resize(2);
-		buffer[0] = (uint16_t)sensorInfo;
 		buffer[0] = (uint16_t)sensorInfo >> 8;
+		buffer[1] = (uint16_t)sensorInfo;
 		for (auto &telemetryData : telemetryDataArray) {
 			buffer.append(telemetryData->getValueRepresentation());
 		}
@@ -119,8 +120,7 @@ std::string AltitudeSensor::getData() {
 std::shared_ptr<bmp3_data> AltitudeSensor::performReading(void) {
     struct bmp3_data data;
 
-    uint8_t sensorComponent = BMP3_PRESS | BMP3_TEMP;
-    if (bmp3_get_sensor_data(sensorComponent, &data, &sensorDevice) != BMP3_OK) {
+    if (bmp3_get_sensor_data(BMP3_ALL, &data, &sensorDevice) != BMP3_OK) {
     	return nullptr;
     }
 

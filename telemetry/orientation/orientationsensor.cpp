@@ -48,6 +48,7 @@ OrientationSensor::OrientationSensor(uint8_t i2cAddress) :
 	sensorInfo.identifier = 0x1;
 	sensorInfo.numberOfTelemetryData = telemetryDataArray.size() - 1;
 	telemetryDataSize += 2; // + sensorInfo
+	telemetryDataSize -= 1; //////////////////////////////////////////////////////////// WTF???
 }
 
 bool OrientationSensor::start() {
@@ -103,8 +104,8 @@ std::string OrientationSensor::getData() {
 
 
 	buffer.resize(2);
-	buffer[0] = (uint16_t)sensorInfo;
 	buffer[0] = (uint16_t)sensorInfo >> 8;
+	buffer[1] = (uint16_t)sensorInfo;
 	for (auto &telemetryData : telemetryDataArray) {
 		buffer.append(telemetryData->getValueRepresentation());
 	}

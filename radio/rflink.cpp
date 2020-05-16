@@ -263,7 +263,7 @@ bool RfLink::loadReceivedPacket(SX1280 *rfModule) {
 	if (size == sizeof(Packet)) {
 		Packet packet;
 		memcpy(&packet.status, &payload[0], 2);
-		memcpy(&packet.payload[0], &payload[2], 16);
+		memcpy(&packet.payload[0], &payload[2], sizeof(packet.payload));
 		if (transmitter) {
 			if (onReceiveTelemetry != nullptr) {
 				onReceiveTelemetry(packet);

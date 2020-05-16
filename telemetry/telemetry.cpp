@@ -34,6 +34,11 @@ void Telemetry::processHeartBeat() {
 Telemetry &Telemetry::operator= (const Packet& packet) {
 	for (unsigned i = 0; i < sizeof(packet.payload);) {
 		uint16_t sensorInfo = packet.payload[i] << 8 | packet.payload[i + 1];
+		if (sensorInfo >> 4 == 0) {
+			// no more sensors
+			return *this;
+		}
+
 		Sensor *sensor = findOrCreateRemoteSensor(sensorInfo);
 
 		i += 2;
@@ -42,7 +47,6 @@ Telemetry &Telemetry::operator= (const Packet& packet) {
 			uint8_t type = (headerData >> 2) & 0x3;
 
 			TelemetryData *telemetryData = findOrCreateTelemetryData(sensor, headerData);
-
 
 			int32_t value { 0 };
 			switch (type) {
@@ -64,15 +68,17 @@ Telemetry &Telemetry::operator= (const Packet& packet) {
 
 void Telemetry::composeTelemetryPacket(Packet &packet) {
 	std::string data;
+	size_t length { 0 };
 
 	// TODO: size check, identifier, etc...
 	for (auto sensor : sensors) {
-		if (sensor->dataSize() <= sizeof(packet.payload) - data.size()) {
+		if (sensor->dataSize() <= sizeof(packet.payload) - length) {
+			length += sensor->dataSize();
 			data.append(sensor->getData());
 		}
 	}
 
-	strncpy((char *)packet.payload, data.c_str(), sizeof(packet.payload));
+	memcpy(packet.payload, data.c_str(), length);
 }
 
 //
@@ -90,7 +96,9 @@ Sensor *Telemetry::findOrCreateRemoteSensor(uint16_t sensorInfoData) {
 		return *it;
 	} else {
 		// no it's an unknown sensor, so create it
-		return new RemoteSensor(sensorInfoData);
+		Sensor *sensor = new RemoteSensor(sensorInfoData);
+		sensors.push_back(sensor);
+		return sensor;
 	}
 }
 
@@ -107,6 +115,8 @@ TelemetryData *Telemetry::findOrCreateTelemetryData(Sensor *sensor, uint8_t head
 		return *it;
 	} else {
 		// create new telemetry data
-		return new TelemetryData(position, "", "", TelemetryDataType(type), 0);
+		TelemetryData *telemetryData = new TelemetryData(position, "", "", TelemetryDataType(type), 0);
+		sensor->telemetryDataArray.push_back(telemetryData);
+		return telemetryData;
 	}
 }

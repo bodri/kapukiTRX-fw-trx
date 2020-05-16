@@ -161,8 +161,10 @@ int main(void)
 	// Setup channels
 	channelData = new ChannelData(26);
 
-	if (!transmitter) {
-		// Setup telemetry
+	// Setup telemetry
+	if (transmitter) {
+		telemetry = new Telemetry();
+	} else {
 		OrientationSensor *orientationSensor = new OrientationSensor();
 		AltitudeSensor *altitudeSensor = new AltitudeSensor(BMP3_I2C_ADDR_SEC);
 
@@ -206,9 +208,11 @@ int main(void)
 		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_4, pwm8);
 	};
 	rfLink->onReceiveTelemetry = [](Packet &packet) {
+//		*telemetry = packet;
 		char buffer[128];
-		sprintf(buffer, "t:%d,y:%d,p:%d,r:%d", packet.payload[1], ((packet.payload[4] << 8) + packet.payload[3])/100, ((packet.payload[7] << 8) + packet.payload[6])/100, ((packet.payload[10] << 8) + packet.payload[9])/100);
-		if (HAL_UART_Transmit(&huart3, (uint8_t *)buffer, strlen(buffer), 1000) != HAL_OK) {
+//		sprintf(buffer, "t:%d,y:%d,p:%d,r:%d", packet.payload[1], ((packet.payload[4] << 8) + packet.payload[3])/100, ((packet.payload[7] << 8) + packet.payload[6])/100, ((packet.payload[10] << 8) + packet.payload[9])/1000);
+		memcpy(buffer, packet.payload, 21);
+		if (HAL_UART_Transmit(&huart3, (uint8_t *)buffer, 21, 1000) != HAL_OK) {
 			Error_Handler();
 		}
 	};

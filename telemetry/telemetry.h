@@ -23,6 +23,7 @@
 
 class Telemetry {
 public:
+	Telemetry() { };
 	Telemetry(std::vector<Sensor *> sensors);
 
 	void processHeartBeat();
