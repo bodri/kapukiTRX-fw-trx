@@ -22,6 +22,7 @@
 #include <map>
 
 typedef struct {
+	uint8_t size;
 	struct {
 		uint16_t packetType : 3;
 		uint16_t rfu : 3;
@@ -92,6 +93,7 @@ private:
 	Pin rf2RxEnable { Pin(RF2RXEN_GPIO_Port, RF2RXEN_Pin) };
 
 	volatile LinkState state { INIT };
+	Packet *packetToSend { nullptr };
 	uint16_t packetNumber;
 
 	volatile bool heartBeatTimeout { false };
@@ -113,7 +115,7 @@ private:
 	void setTracking(bool tracking);
 	void adjustTimerToTrackTx(void);
 	void registerLostPacket(void);
-	void sendPacket(size_t size);
+	void sendPacket(Packet *packet);
 	void enterRx(void);
 
 	void setPacketParams(bool telemetryPacket);

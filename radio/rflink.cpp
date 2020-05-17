@@ -159,6 +159,10 @@ void RfLink::runLoop(void) {
 		rf1Module->setChannel(nextChannel);
 		rf2Module->setChannel(nextChannel);
 
+		if (packetToSend != nullptr) {
+			delete packetToSend;
+		}
+
 		// sendPacket xxx us, enterRx: 153 us
 		state = SET_PACKET_PARAMS;
 		HAL_GPIO_WritePin(SYNC_GPIO_Port, SYNC_Pin, GPIO_PIN_RESET);
@@ -167,6 +171,9 @@ void RfLink::runLoop(void) {
 	case SET_PACKET_PARAMS: {
 		bool shouldSend = shouldSendPacket();
 		bool telemetryPacket = (transmitter && !shouldSend) || (!transmitter && shouldSend);
+		packetToSend = new Packet();
+		packetToSend->status.packetNumber = packetNumber;
+		packetToSend->size = telemetryPacket ? 23 : 42; // TODO: for normal packets based on number of channels for telemetry based on telemetry data points
 		// TODO: optimize: if no change in packet type, we should not set the same again
 		setPacketParams(telemetryPacket);
 		state = shouldSend ? WAITING_FOR_TX_OFFSET : ENTER_RX;
@@ -174,10 +181,7 @@ void RfLink::runLoop(void) {
 		break;
 	case WAITING_FOR_TX_OFFSET:
 		if (__HAL_TIM_GET_COUNTER(heartBeatTimer) > txOffsetInMicroSecond) {
-			bool shouldSend = shouldSendPacket();
-			bool telemetryPacket = (transmitter && !shouldSend) || (!transmitter && shouldSend);
-
-			sendPacket(telemetryPacket ? 23 : 42);
+			sendPacket(packetToSend);
 			state = IDLE;
 		}
 		break;
@@ -266,14 +270,12 @@ bool RfLink::validPacket(SX1280 *rfModule) {
 }
 
 bool RfLink::loadReceivedPacket(SX1280 *rfModule) {
-	uint8_t payload[127];
+	Packet packet;
 	uint8_t size;
 
-	rfModule->getPayload(payload, &size, sizeof(payload));
+	rfModule->getPayload((uint8_t *)&packet.status, &size, sizeof(packet.payload));
 
-	Packet packet;
-	memcpy(&packet.status, &payload[0], 2);
-	memcpy(&packet.payload[0], &payload[2], size - 2);
+	packet.size = size;
 	if (transmitter) {
 		if (onReceiveTelemetry != nullptr) {
 			onReceiveTelemetry(packet);
@@ -342,7 +344,7 @@ void RfLink::registerLostPacket(void) {
 	}
 }
 
-void RfLink::sendPacket(size_t size) {
+void RfLink::sendPacket(Packet *packet) {
 //	HAL_GPIO_WritePin(SYNC_GPIO_Port, SYNC_Pin, GPIO_PIN_SET);
 	HAL_GPIO_WritePin(TXORRX_GPIO_Port, TXORRX_Pin, GPIO_PIN_SET);
 
@@ -356,19 +358,17 @@ void RfLink::sendPacket(size_t size) {
 		rf2TxEnable.high();
 	}
 
-    Packet packet { 0 };
-    packet.status.packetNumber = packetNumber;
     if (transmitter) {
 		if (onTransmit != nullptr) {
-			onTransmit(packet);
+			onTransmit(*packet);
 		}
     } else {
 		if (onTransmitTelemetry != nullptr) {
-			onTransmitTelemetry(packet);
+			onTransmitTelemetry(*packet);
 		}
     }
 
-    rfModule->send((uint8_t *)&packet, size);
+    rfModule->send((uint8_t *)&packet->status, packet->size);
 
 //    HAL_GPIO_WritePin(SYNC_GPIO_Port, SYNC_Pin, GPIO_PIN_RESET);
 }
@@ -385,12 +385,16 @@ void RfLink::enterRx(void) {
 }
 
 void RfLink::setPacketParams(bool telemetryPacket) {
+	if (packetToSend == nullptr) {
+		return;
+	}
+
 	if (telemetryPacket) {
-		setTelemetryPacketParams(rf1Module, 23);
-		setTelemetryPacketParams(rf2Module, 23);
+		setTelemetryPacketParams(rf1Module, packetToSend->size);
+		setTelemetryPacketParams(rf2Module, packetToSend->size);
 	} else {
-		setNormalPacketParams(rf1Module, 42);
-		setNormalPacketParams(rf2Module, 42);
+		setNormalPacketParams(rf1Module, packetToSend->size);
+		setNormalPacketParams(rf2Module, packetToSend->size);
 	}
 }
 
