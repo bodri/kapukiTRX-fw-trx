@@ -149,7 +149,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   // Check if this is a transmitter?
-  transmitter = HAL_GPIO_ReadPin(TXMODE_GPIO_Port, TXMODE_Pin) == GPIO_PIN_SET ? false : true;
+//  transmitter = HAL_GPIO_ReadPin(TXMODE_GPIO_Port, TXMODE_Pin) == GPIO_PIN_SET ? false : true;
 
   Pin redLed = Pin(LEDRED_GPIO_Port, LEDRED_Pin);
   Pin greenLed = Pin(LEDGREEN_GPIO_Port, LEDGREEN_Pin);
@@ -182,12 +182,15 @@ int main(void)
 		}
 		channelData->fillRawChannelData(packet);
 	};
-	rfLink->onPrepareTelemetryPacket = []() {
-		return telemetry->prepareTelemetryPacket();
-	};
-	rfLink->onTransmitTelemetry = [](Packet &packet) {
-		telemetry->sendTelemetryPacket(packet);
-	};
+	if (!transmitter) {
+		rfLink->onPrepareTelemetryPacket = []() {
+			uint8_t telemetryPacketSize = telemetry->prepareTelemetryPacket();
+			return telemetryPacketSize + sizeof(Packet::status);
+		};
+		rfLink->onTransmitTelemetry = [](Packet &packet) {
+			telemetry->sendTelemetryPacket(packet);
+		};
+	}
 	rfLink->onReceive = [](Packet &packet) {
 		*channelData = packet;
 		float resolution = 139999.0f / 4095.0f;

@@ -83,7 +83,7 @@ uint8_t Telemetry::prepareTelemetryPacket() {
 }
 
 void Telemetry::sendTelemetryPacket(Packet& packet) {
-	memcpy(packet.payload, preparedTelemetryData.c_str(), sizeof(packet.payload));
+	memcpy(packet.payload, preparedTelemetryData.c_str(), packet.size);
 }
 
 //

@@ -101,7 +101,7 @@ private:
 	volatile LinkState state { INIT };
 	Packet *packetToSend { nullptr };
 	uint16_t packetNumber;
-	uint8_t nextTelemetryPacketSize { 0 };
+	uint8_t nextTelemetryPacketSize { 127 };
 
 	volatile bool heartBeatTimeout { false };
 	volatile IrqSource lastIrqSource { NO_IRQ };

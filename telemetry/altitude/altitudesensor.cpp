@@ -42,7 +42,7 @@ AltitudeSensor::AltitudeSensor(uint8_t i2cAddress) :
 
 	sensorInfo.identifier = 0x2;
 	sensorInfo.numberOfTelemetryData = telemetryDataArray.size() - 1;
-	telemetryDataSize += 1; // + sensorInfo - 1 for telemetryDataArray[0]
+	telemetryDataSize += sizeof(SensorInfo) - 1; // + sensorInfo - 1 for telemetryDataArray[0]
 }
 
 bool AltitudeSensor::start() {
