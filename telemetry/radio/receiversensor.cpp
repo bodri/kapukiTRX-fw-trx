@@ -15,9 +15,9 @@
 
 ReceiverSensor::ReceiverSensor() {
 	TelemetryData *sensor = new TelemetryData(0, "Receiver", "", int8_tdt, 0);
-	receiverVoltage = new TelemetryData(1, "Receiver Voltage", "V", int8_tdt, 1);
-	rssiModule1 = new TelemetryData(1, "Transmitter RSSI #1", "dBm", int8_tdt, 0);
-	rssiModule2 = new TelemetryData(2, "Transmitter RSSI #2", "dBm", int8_tdt, 0);
+	receiverVoltage = new TelemetryData(1, "RX Voltage", "V", int8_tdt, 1);
+	rssiModule1 = new TelemetryData(1, "TX RSSI #1", "dBm", int8_tdt, 0);
+	rssiModule2 = new TelemetryData(2, "TX RSSI #2", "dBm", int8_tdt, 0);
 
 	this->telemetryDataArray = {
 			sensor,
