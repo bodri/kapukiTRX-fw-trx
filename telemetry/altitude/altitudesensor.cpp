@@ -25,7 +25,7 @@ static void delayMilliSeconds(uint32_t ms);
 
 AltitudeSensor::AltitudeSensor(uint8_t i2cAddress) :
 	i2cAddress(i2cAddress << 1) {
-	TelemetryData *sensor = new TelemetryData(0, "Vario", "", int8_tdt, 0);
+	TelemetryData *sensor = new TelemetryData(0, "Vario Sensor", "", int8_tdt, 0);
 	temperature = new TelemetryData(1, "Temperature", "°C", int8_tdt, 0);
 	pressure = new TelemetryData(2, "Pressure", "°", int24_tdt, 2);
 
@@ -42,8 +42,7 @@ AltitudeSensor::AltitudeSensor(uint8_t i2cAddress) :
 
 	sensorInfo.identifier = 0x2;
 	sensorInfo.numberOfTelemetryData = telemetryDataArray.size() - 1;
-	telemetryDataSize += 2; // + sensorInfo
-	telemetryDataSize -= 1; //////////////////////////////////////////////////////////// WTF???
+	telemetryDataSize += 1; // + sensorInfo - 1 for telemetryDataArray[0]
 }
 
 bool AltitudeSensor::start() {

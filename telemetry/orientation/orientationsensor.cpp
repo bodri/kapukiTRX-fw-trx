@@ -26,7 +26,7 @@ static void delayMilliSeconds(u32 msec);
 OrientationSensor::OrientationSensor(uint8_t i2cAddress) :
 	i2cAddress(i2cAddress << 1) {
 
-	TelemetryData *sensor = new TelemetryData(0, "Orientation", "", int8_tdt, 0);
+	TelemetryData *sensor = new TelemetryData(0, "Orientation Sensor", "", int8_tdt, 0);
 	temperature = new TelemetryData(1, "Temperature", "°C", int8_tdt, 0);
 	yawAngle = new TelemetryData(2, "Yaw angle", "°", int16_tdt, 2);
 	pitchAngle = new TelemetryData(3, "Pitch angle", "°", int16_tdt, 2);
@@ -47,8 +47,7 @@ OrientationSensor::OrientationSensor(uint8_t i2cAddress) :
 
 	sensorInfo.identifier = 0x1;
 	sensorInfo.numberOfTelemetryData = telemetryDataArray.size() - 1;
-	telemetryDataSize += 2; // + sensorInfo
-	telemetryDataSize -= 1; //////////////////////////////////////////////////////////// WTF???
+	telemetryDataSize += 1; // + sensorInfo - 1 for telemetryDataArray[0]
 }
 
 bool OrientationSensor::start() {
