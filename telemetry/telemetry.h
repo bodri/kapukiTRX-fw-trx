@@ -30,10 +30,12 @@ public:
 
 	Telemetry &operator= (const Packet& packet);
 
-	void composeTelemetryPacket(Packet &packet);
+	uint8_t prepareTelemetryPacket();
+	void sendTelemetryPacket(Packet& packet);
 
 private:
 	std::vector<Sensor *> sensors { };
+	std::string preparedTelemetryData { };
 
 	Sensor *findOrCreateRemoteSensor(uint16_t sensorInfoData);
 	TelemetryData *findOrCreateTelemetryData(Sensor *sensor, uint8_t headerData);

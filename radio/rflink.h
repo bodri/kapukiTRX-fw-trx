@@ -21,6 +21,11 @@
 #include <stdint.h>
 #include <map>
 
+typedef enum {
+	NORMAL = 1,
+	TELEMETRY
+} PacketType;
+
 typedef struct {
 	uint8_t size;
 	struct {
@@ -70,6 +75,7 @@ public:
 	void runLoop(void);
 
 	std::function<void(Packet &packet)> onTransmit;
+	std::function<uint8_t()> onPrepareTelemetryPacket;
 	std::function<void(Packet &packet)> onTransmitTelemetry;
 	std::function<void(Packet &packet)> onReceive;
 	std::function<void(Packet &packet)> onReceiveTelemetry;
@@ -95,6 +101,7 @@ private:
 	volatile LinkState state { INIT };
 	Packet *packetToSend { nullptr };
 	uint16_t packetNumber;
+	uint8_t nextTelemetryPacketSize { 0 };
 
 	volatile bool heartBeatTimeout { false };
 	volatile IrqSource lastIrqSource { NO_IRQ };

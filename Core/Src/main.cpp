@@ -181,10 +181,12 @@ int main(void)
 			(*channelData)[i]->value = testData;
 		}
 		channelData->fillRawChannelData(packet);
-		for (int i = 0; i < 10; i++) { }
+	};
+	rfLink->onPrepareTelemetryPacket = []() {
+		return telemetry->prepareTelemetryPacket();
 	};
 	rfLink->onTransmitTelemetry = [](Packet &packet) {
-		telemetry->composeTelemetryPacket(packet);
+		telemetry->sendTelemetryPacket(packet);
 	};
 	rfLink->onReceive = [](Packet &packet) {
 		*channelData = packet;
@@ -209,10 +211,10 @@ int main(void)
 	};
 	rfLink->onReceiveTelemetry = [](Packet &packet) {
 //		*telemetry = packet;
-		char buffer[128];
+		char buffer[127];
 //		sprintf(buffer, "t:%d,y:%d,p:%d,r:%d", packet.payload[1], ((packet.payload[4] << 8) + packet.payload[3])/100, ((packet.payload[7] << 8) + packet.payload[6])/100, ((packet.payload[10] << 8) + packet.payload[9])/1000);
-		memcpy(buffer, packet.payload, 21);
-		if (HAL_UART_Transmit(&huart3, (uint8_t *)buffer, 21, 1000) != HAL_OK) {
+		memcpy(buffer, packet.payload, packet.size - 2);
+		if (HAL_UART_Transmit(&huart3, (uint8_t *)buffer, packet.size - 2, 1000) != HAL_OK) {
 			Error_Handler();
 		}
 	};

@@ -66,19 +66,24 @@ Telemetry &Telemetry::operator= (const Packet& packet) {
 	return *this;
 }
 
-void Telemetry::composeTelemetryPacket(Packet &packet) {
+uint8_t Telemetry::prepareTelemetryPacket() {
 	std::string data;
 	size_t length { 0 };
 
 	// TODO: size check, identifier, etc...
 	for (auto sensor : sensors) {
-		if (sensor->dataSize() <= sizeof(packet.payload) - length) {
+		if (sensor->dataSize() <= sizeof(Packet::payload) - length) {
 			length += sensor->dataSize();
 			data.append(sensor->getData());
 		}
 	}
 
-	memcpy(packet.payload, data.c_str(), length);
+	preparedTelemetryData = data;
+	return data.size();
+}
+
+void Telemetry::sendTelemetryPacket(Packet& packet) {
+	memcpy(packet.payload, preparedTelemetryData.c_str(), sizeof(packet.payload));
 }
 
 //

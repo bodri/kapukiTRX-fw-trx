@@ -173,7 +173,8 @@ void RfLink::runLoop(void) {
 		bool telemetryPacket = (transmitter && !shouldSend) || (!transmitter && shouldSend);
 		packetToSend = new Packet();
 		packetToSend->status.packetNumber = packetNumber;
-		packetToSend->size = telemetryPacket ? 23 : 42; // TODO: for normal packets based on number of channels for telemetry based on telemetry data points
+		packetToSend->status.packetType = telemetryPacket ? TELEMETRY : NORMAL;
+		packetToSend->size = telemetryPacket ? nextTelemetryPacketSize : 42; // TODO: for normal packets based on number of channels for telemetry based on telemetry data points
 		// TODO: optimize: if no change in packet type, we should not set the same again
 		setPacketParams(telemetryPacket);
 		state = shouldSend ? WAITING_FOR_TX_OFFSET : ENTER_RX;
@@ -219,7 +220,6 @@ void RfLink::runLoop(void) {
 	}
 		break;
 	case TIMEOUT:
-		for (int i = 0; i < 100; i++) { }
 		state = WAITING_FOR_NEXT_HOP;
 		break;
 	case DONE: {
@@ -244,13 +244,17 @@ void RfLink::runLoop(void) {
 //				packet->payload.packetNumber, rssiPowerLevel(packet->status.rssi),
 //				lqiPercentage(packet->status.linkQuality.lqi));
 
+		if (onPrepareTelemetryPacket != nullptr) {
+			nextTelemetryPacketSize = onPrepareTelemetryPacket();
+		}
+
 		HAL_GPIO_WritePin(SYNC_GPIO_Port, SYNC_Pin, GPIO_PIN_RESET);
 		HAL_GPIO_WritePin(TXORRX_GPIO_Port, TXORRX_Pin, GPIO_PIN_RESET);
 		rf1Module->standBy();
 		rf2Module->standBy();
 		state = WAITING_FOR_NEXT_HOP;
 
-		// Can sleep here
+		// TODO: Can sleep here
 	}
 		break;
 	default:
