@@ -65,11 +65,11 @@ void HAL_FDCAN_MspInit(FDCAN_HandleTypeDef* fdcanHandle)
   /* USER CODE END FDCAN3_MspInit 0 */
     /* FDCAN3 clock enable */
     __HAL_RCC_FDCAN_CLK_ENABLE();
-  
+
     __HAL_RCC_GPIOB_CLK_ENABLE();
-    /**FDCAN3 GPIO Configuration    
+    /**FDCAN3 GPIO Configuration
     PB3     ------> FDCAN3_RX
-    PB4     ------> FDCAN3_TX 
+    PB4     ------> FDCAN3_TX
     */
     GPIO_InitStruct.Pin = CANRX_Pin|CANTX_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
@@ -94,10 +94,10 @@ void HAL_FDCAN_MspDeInit(FDCAN_HandleTypeDef* fdcanHandle)
   /* USER CODE END FDCAN3_MspDeInit 0 */
     /* Peripheral clock disable */
     __HAL_RCC_FDCAN_CLK_DISABLE();
-  
-    /**FDCAN3 GPIO Configuration    
+
+    /**FDCAN3 GPIO Configuration
     PB3     ------> FDCAN3_RX
-    PB4     ------> FDCAN3_TX 
+    PB4     ------> FDCAN3_TX
     */
     HAL_GPIO_DeInit(GPIOB, CANRX_Pin|CANTX_Pin);
 
@@ -105,7 +105,7 @@ void HAL_FDCAN_MspDeInit(FDCAN_HandleTypeDef* fdcanHandle)
 
   /* USER CODE END FDCAN3_MspDeInit 1 */
   }
-} 
+}
 
 /* USER CODE BEGIN 1 */
 
