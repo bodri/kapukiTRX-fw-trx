@@ -19,6 +19,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "dma.h"
 #include "fdcan.h"
 #include "i2c.h"
 #include "iwdg.h"
@@ -67,6 +68,8 @@ Telemetry *telemetry;
 int16_t testData { 0 };
 bool testDirectionUp { true };
 
+uint8_t crsfBuffer[26];
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -103,6 +106,15 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 	rfLink->processIrqs(GPIO_Pin);
 }
 
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
+	if (huart == &huart3) {
+
+	}
+}
+
+void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
+
+}
 
 /* USER CODE END 0 */
 
@@ -134,6 +146,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_SPI1_Init();
   MX_TIM2_Init();
   MX_TIM5_Init();
@@ -141,7 +154,7 @@ int main(void)
   MX_FDCAN3_Init();
   MX_USART1_UART_Init();
   MX_TIM4_Init();
-  MX_IWDG_Init();
+//  MX_IWDG_Init();
   MX_I2C3_Init();
   MX_RNG_Init();
   MX_USART3_UART_Init();
@@ -228,6 +241,9 @@ int main(void)
 //  HAL_GPIO_WritePin(LEDBLUE_GPIO_Port, LEDBLUE_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin(RFPOWEREN_GPIO_Port, RFPOWEREN_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(PWMOE_GPIO_Port, PWMOE_Pin, GPIO_PIN_SET);
+
+  HAL_UART_Receive_DMA(&huart3, crsfBuffer, 26);
+  __HAL_DMA_DISABLE_IT(huart3.hdmarx, DMA_IT_HT);
 
   /* USER CODE END 2 */
 
