@@ -106,9 +106,47 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 	rfLink->processIrqs(GPIO_Pin);
 }
 
+void processCrsfData(const void* data, size_t len) {
+    /*
+     * This function is called on DMA TC and HT events, aswell as on UART IDLE (if enabled) line event.
+     *
+     * For the sake of this example, function does a loop-back data over UART in polling mode.
+     * Check ringbuff RX-based example for implementation with TX & RX DMA transfer.
+     */
+}
+
+void crsfPacketReceived(void) {
+    static size_t old_pos;
+    size_t pos;
+
+    /* Calculate current position in buffer */
+    pos = sizeof(crsfBuffer) - LL_DMA_GetDataLength(DMA1, LL_DMA_CHANNEL_1);
+    if (pos != old_pos) {                       /* Check change in received data */
+        if (pos > old_pos) {                    /* Current position is over previous one */
+            /* We are in "linear" mode */
+            /* Process data directly by subtracting "pointers" */
+            processCrsfData(&crsfBuffer[old_pos], pos - old_pos);
+        } else {
+            /* We are in "overflow" mode */
+            /* First process data to the end of buffer */
+            processCrsfData(&crsfBuffer[old_pos], sizeof(crsfBuffer) - old_pos);
+            /* Check and continue with beginning of buffer */
+            if (pos > 0) {
+                processCrsfData(&crsfBuffer[0], pos);
+            }
+        }
+    }
+    old_pos = pos;                              /* Save current position as old */
+
+    /* Check and manually update if we reached end of buffer */
+    if (old_pos == sizeof(crsfBuffer)) {
+        old_pos = 0;
+    }
+}
+
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	if (huart == &huart3) {
-
+		crsfPacketReceived();
 	}
 }
 
@@ -243,7 +281,7 @@ int main(void)
   HAL_GPIO_WritePin(PWMOE_GPIO_Port, PWMOE_Pin, GPIO_PIN_SET);
 
   HAL_UART_Receive_DMA(&huart3, crsfBuffer, 26);
-  __HAL_DMA_DISABLE_IT(huart3.hdmarx, DMA_IT_HT);
+  __HAL_UART_ENABLE_IT(&huart3, UART_IT_IDLE);
 
   /* USER CODE END 2 */
 

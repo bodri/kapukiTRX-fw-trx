@@ -248,11 +248,14 @@ void TIM4_IRQHandler(void)
 void USART3_IRQHandler(void)
 {
   /* USER CODE BEGIN USART3_IRQn 0 */
-
+	if (__HAL_UART_GET_IT_SOURCE(&huart3, UART_FLAG_IDLE) == SET) {     /* if Idle flag is set */
+		__HAL_UART_CLEAR_IT(&huart3, UART_FLAG_IDLE);
+		HAL_DMA_Abort(&hdma_usart3_rx);
+	} else {
   /* USER CODE END USART3_IRQn 0 */
   HAL_UART_IRQHandler(&huart3);
   /* USER CODE BEGIN USART3_IRQn 1 */
-
+	}
   /* USER CODE END USART3_IRQn 1 */
 }
 
