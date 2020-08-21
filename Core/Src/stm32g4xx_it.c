@@ -23,6 +23,9 @@
 #include "stm32g4xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+
+#include <stdbool.h>
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -58,8 +61,11 @@
 /* External variables --------------------------------------------------------*/
 extern TIM_HandleTypeDef htim4;
 extern DMA_HandleTypeDef hdma_usart3_rx;
+extern DMA_HandleTypeDef hdma_usart3_tx;
 extern UART_HandleTypeDef huart3;
 /* USER CODE BEGIN EV */
+
+extern volatile bool crsfPacketReceived;
 
 /* USER CODE END EV */
 
@@ -214,6 +220,20 @@ void DMA1_Channel1_IRQHandler(void)
 }
 
 /**
+  * @brief This function handles DMA1 channel2 global interrupt.
+  */
+void DMA1_Channel2_IRQHandler(void)
+{
+  /* USER CODE BEGIN DMA1_Channel2_IRQn 0 */
+
+  /* USER CODE END DMA1_Channel2_IRQn 0 */
+  HAL_DMA_IRQHandler(&hdma_usart3_tx);
+  /* USER CODE BEGIN DMA1_Channel2_IRQn 1 */
+
+  /* USER CODE END DMA1_Channel2_IRQn 1 */
+}
+
+/**
   * @brief This function handles EXTI line[9:5] interrupts.
   */
 void EXTI9_5_IRQHandler(void)
@@ -248,9 +268,10 @@ void TIM4_IRQHandler(void)
 void USART3_IRQHandler(void)
 {
   /* USER CODE BEGIN USART3_IRQn 0 */
-	if (__HAL_UART_GET_IT_SOURCE(&huart3, UART_FLAG_IDLE) == SET) {     /* if Idle flag is set */
-		__HAL_UART_CLEAR_IT(&huart3, UART_FLAG_IDLE);
-		HAL_DMA_Abort(&hdma_usart3_rx);
+	if (__HAL_UART_GET_FLAG(&huart3, UART_FLAG_IDLE) != RESET) {
+		__HAL_UART_CLEAR_IDLEFLAG(&huart3);
+		HAL_UART_DMAStop(&huart3);
+		crsfPacketReceived = true;
 	} else {
   /* USER CODE END USART3_IRQn 0 */
   HAL_UART_IRQHandler(&huart3);

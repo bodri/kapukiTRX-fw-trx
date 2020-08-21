@@ -19,6 +19,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "crc.h"
 #include "dma.h"
 #include "fdcan.h"
 #include "i2c.h"
@@ -38,6 +39,8 @@
 #include "telemetry.h"
 #include "orientation/orientationsensor.h"
 #include "altitude/altitudesensor.h"
+
+extern DMA_HandleTypeDef hdma_usart3_rx;
 
 /* USER CODE END Includes */
 
@@ -68,7 +71,9 @@ Telemetry *telemetry;
 int16_t testData { 0 };
 bool testDirectionUp { true };
 
-uint8_t crsfBuffer[26];
+uint8_t crsfBuffer[26] { 0 };
+volatile bool crsfPacketReceived { false };
+volatile bool crsfFrameError { false };
 
 /* USER CODE END PV */
 
@@ -106,52 +111,19 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 	rfLink->processIrqs(GPIO_Pin);
 }
 
-void processCrsfData(const void* data, size_t len) {
-    /*
-     * This function is called on DMA TC and HT events, aswell as on UART IDLE (if enabled) line event.
-     *
-     * For the sake of this example, function does a loop-back data over UART in polling mode.
-     * Check ringbuff RX-based example for implementation with TX & RX DMA transfer.
-     */
-}
-
-void crsfPacketReceived(void) {
-    static size_t old_pos;
-    size_t pos;
-
-    /* Calculate current position in buffer */
-    pos = sizeof(crsfBuffer) - LL_DMA_GetDataLength(DMA1, LL_DMA_CHANNEL_1);
-    if (pos != old_pos) {                       /* Check change in received data */
-        if (pos > old_pos) {                    /* Current position is over previous one */
-            /* We are in "linear" mode */
-            /* Process data directly by subtracting "pointers" */
-            processCrsfData(&crsfBuffer[old_pos], pos - old_pos);
-        } else {
-            /* We are in "overflow" mode */
-            /* First process data to the end of buffer */
-            processCrsfData(&crsfBuffer[old_pos], sizeof(crsfBuffer) - old_pos);
-            /* Check and continue with beginning of buffer */
-            if (pos > 0) {
-                processCrsfData(&crsfBuffer[0], pos);
-            }
-        }
-    }
-    old_pos = pos;                              /* Save current position as old */
-
-    /* Check and manually update if we reached end of buffer */
-    if (old_pos == sizeof(crsfBuffer)) {
-        old_pos = 0;
-    }
-}
-
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-	if (huart == &huart3) {
-		crsfPacketReceived();
+	if (huart->Instance == USART3) {
+		crsfPacketReceived = true;
 	}
 }
 
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
-
+	__HAL_UART_CLEAR_OREFLAG(huart);
+	__HAL_UART_CLEAR_PEFLAG(huart);
+	__HAL_UART_CLEAR_NEFLAG(huart);
+	__HAL_UART_CLEAR_FEFLAG(huart);
+	__HAL_UART_DISABLE_IT(huart, UART_IT_ERR);
+	crsfFrameError = true;
 }
 
 /* USER CODE END 0 */
@@ -196,6 +168,7 @@ int main(void)
   MX_I2C3_Init();
   MX_RNG_Init();
   MX_USART3_UART_Init();
+  MX_CRC_Init();
   /* USER CODE BEGIN 2 */
 
   // Check if this is a transmitter?
@@ -263,13 +236,13 @@ int main(void)
 		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_4, pwm8);
 	};
 	rfLink->onReceiveTelemetry = [](Packet &packet) {
-//		*telemetry = packet;
-		char buffer[127];
-//		sprintf(buffer, "t:%d,y:%d,p:%d,r:%d", packet.payload[1], ((packet.payload[4] << 8) + packet.payload[3])/100, ((packet.payload[7] << 8) + packet.payload[6])/100, ((packet.payload[10] << 8) + packet.payload[9])/1000);
-		memcpy(buffer, packet.payload, packet.size - 2);
-		if (HAL_UART_Transmit(&huart3, (uint8_t *)buffer, packet.size - 2, 1000) != HAL_OK) {
-			Error_Handler();
-		}
+////		*telemetry = packet;
+//		char buffer[127];
+////		sprintf(buffer, "t:%d,y:%d,p:%d,r:%d", packet.payload[1], ((packet.payload[4] << 8) + packet.payload[3])/100, ((packet.payload[7] << 8) + packet.payload[6])/100, ((packet.payload[10] << 8) + packet.payload[9])/1000);
+//		memcpy(buffer, packet.payload, packet.size - 2);
+//		if (HAL_UART_Transmit(&huart3, (uint8_t *)buffer, packet.size - 2, 1000) != HAL_OK) {
+//			Error_Handler();
+//		}
 	};
 
 	rfLink->onLinkStatusChange = [](bool tracking) {
@@ -280,8 +253,8 @@ int main(void)
   HAL_GPIO_WritePin(RFPOWEREN_GPIO_Port, RFPOWEREN_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(PWMOE_GPIO_Port, PWMOE_Pin, GPIO_PIN_SET);
 
-  HAL_UART_Receive_DMA(&huart3, crsfBuffer, 26);
   __HAL_UART_ENABLE_IT(&huart3, UART_IT_IDLE);
+  HAL_UART_Receive_DMA(&huart3, crsfBuffer, sizeof(crsfBuffer));
 
   /* USER CODE END 2 */
 
@@ -303,6 +276,36 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+
+	  if (crsfFrameError) {
+		  HAL_UART_Receive_DMA(&huart3, crsfBuffer, sizeof(crsfBuffer));
+		  crsfFrameError = false;
+	  }
+
+	  if (crsfPacketReceived) {
+		  if (crsfBuffer[0] == 0xee) {
+			  uint8_t crc = HAL_CRC_Calculate(&hcrc, (uint32_t *)&crsfBuffer[2], 23);
+			  if (crsfBuffer[25] == crc) {
+				  // valid packet
+
+				  // send back dummy telemetry
+				  uint8_t telemetry[] = "\x14\xA2\xA2\x55\x65\x02\x00\x05\x96\x44\x22";
+				  static uint8_t buffer[sizeof(telemetry) + 2];
+				  size_t len = sizeof(telemetry) - 1;
+				  memcpy(&buffer[2], &telemetry[0], len);
+				  buffer[0] = 0xEA;
+				  buffer[1] = len + 1;
+				  buffer[sizeof(buffer) - 1] = HAL_CRC_Calculate(&hcrc, (uint32_t *)&telemetry[0], len);
+				  for (int i = 0; i < 1000; i++) { }
+				  HAL_UART_Transmit_DMA(&huart3, buffer, sizeof(buffer));
+			  } else {
+				  for (int i = 0; i < 100; i++) { }
+			  }
+		  }
+
+		  HAL_UART_Receive_DMA(&huart3, crsfBuffer, sizeof(crsfBuffer));
+		  crsfPacketReceived = false;
+	  }
 
 //	  if (HAL_I2C_Master_Transmit(&hi2c1, address, buffer, 1, 1000000) == HAL_OK) {
 //		  HAL_GPIO_WritePin(LEDRED_GPIO_Port, LEDRED_Pin, GPIO_PIN_RESET);
@@ -349,9 +352,11 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI48|RCC_OSCILLATORTYPE_LSI
-                              |RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI|RCC_OSCILLATORTYPE_HSI48
+                              |RCC_OSCILLATORTYPE_LSI|RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
   RCC_OscInitStruct.LSIState = RCC_LSI_ON;
   RCC_OscInitStruct.HSI48State = RCC_HSI48_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
@@ -384,7 +389,7 @@ void SystemClock_Config(void)
                               |RCC_PERIPHCLK_I2C3|RCC_PERIPHCLK_RNG
                               |RCC_PERIPHCLK_FDCAN;
   PeriphClkInit.Usart1ClockSelection = RCC_USART1CLKSOURCE_PCLK2;
-  PeriphClkInit.Usart3ClockSelection = RCC_USART3CLKSOURCE_PCLK1;
+  PeriphClkInit.Usart3ClockSelection = RCC_USART3CLKSOURCE_HSI;
   PeriphClkInit.I2c3ClockSelection = RCC_I2C3CLKSOURCE_PCLK1;
   PeriphClkInit.FdcanClockSelection = RCC_FDCANCLKSOURCE_PCLK1;
   PeriphClkInit.RngClockSelection = RCC_RNGCLKSOURCE_HSI48;
