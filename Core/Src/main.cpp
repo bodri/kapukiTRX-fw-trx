@@ -51,6 +51,10 @@ extern DMA_HandleTypeDef hdma_usart3_rx;
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+
+#define CRSF_MAX_CHANNELS   16U      // Maximum number of channels from crsf datastream
+#define CRSF_FRAMELEN_MAX   64U      // maximum possible framelength
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -68,9 +72,6 @@ VisualStatus *visualStatus;
 ChannelData *channelData;
 Telemetry *telemetry;
 
-int16_t testData { 0 };
-bool testDirectionUp { true };
-
 uint8_t crsfBuffer[26] { 0 };
 volatile bool crsfPacketReceived { false };
 volatile bool crsfFrameError { false };
@@ -81,6 +82,51 @@ volatile bool crsfFrameError { false };
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
 
+struct Channels11Bit {
+    // 176 bits of data (11 bits per channel * 16 channels) = 22 bytes.
+#if __BYTE_ORDER != __LITTLE_ENDIAN
+#error "Only supported on little-endian architectures"
+#endif
+    uint32_t ch0 : 11;
+    uint32_t ch1 : 11;
+    uint32_t ch2 : 11;
+    uint32_t ch3 : 11;
+    uint32_t ch4 : 11;
+    uint32_t ch5 : 11;
+    uint32_t ch6 : 11;
+    uint32_t ch7 : 11;
+    uint32_t ch8 : 11;
+    uint32_t ch9 : 11;
+    uint32_t ch10 : 11;
+    uint32_t ch11 : 11;
+    uint32_t ch12 : 11;
+    uint32_t ch13 : 11;
+    uint32_t ch14 : 11;
+    uint32_t ch15 : 11;
+};
+
+void decode11BitChannels(const uint8_t* data, uint8_t nchannels, ChannelData &channelData, uint16_t mult, uint16_t div, uint16_t offset) {
+#define CHANNEL_SCALE(x) ((int32_t(x) * mult) / div + offset)
+
+    const Channels11Bit* channels = (const Channels11Bit *)data;
+    channelData[0]->value = CHANNEL_SCALE(channels->ch0);
+    channelData[1]->value = CHANNEL_SCALE(channels->ch1);
+    channelData[2]->value = CHANNEL_SCALE(channels->ch2);
+    channelData[3]->value = CHANNEL_SCALE(channels->ch3);
+    channelData[4]->value = CHANNEL_SCALE(channels->ch4);
+    channelData[5]->value = CHANNEL_SCALE(channels->ch5);
+    channelData[6]->value = CHANNEL_SCALE(channels->ch6);
+    channelData[7]->value = CHANNEL_SCALE(channels->ch7);
+    channelData[8]->value = CHANNEL_SCALE(channels->ch8);
+    channelData[9]->value = CHANNEL_SCALE(channels->ch9);
+    channelData[10]->value = CHANNEL_SCALE(channels->ch10);
+    channelData[11]->value = CHANNEL_SCALE(channels->ch11);
+    channelData[12]->value = CHANNEL_SCALE(channels->ch12);
+    channelData[13]->value = CHANNEL_SCALE(channels->ch13);
+    channelData[14]->value = CHANNEL_SCALE(channels->ch14);
+    channelData[15]->value = CHANNEL_SCALE(channels->ch15);
+}
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -89,15 +135,6 @@ void SystemClock_Config(void);
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 
 	if (htim->Instance == TIM4) {
-		testData += testDirectionUp ? 10 : -10;
-		if (testData > 0xFFF) {
-			testData = 0xFFF;
-			testDirectionUp = false;
-		} else if (testData < 0) {
-			testData = 0;
-			testDirectionUp = true;
-		}
-
 		if (!transmitter) {
 			telemetry->processHeartBeat();
 		}
@@ -200,9 +237,9 @@ int main(void)
 	rfLink = new RfLink(&htim4, transmitter);
 	rfLink->init();
 	rfLink->onTransmit = [](Packet &packet) {
-		for (unsigned i = 0; i < 8; i++) {
-			(*channelData)[i]->value = testData;
-		}
+//		for (unsigned i = 0; i < 8; i++) {
+//			(*channelData)[i]->value = testData;
+//		}
 		channelData->fillRawChannelData(packet);
 	};
 	if (!transmitter) {
@@ -287,6 +324,7 @@ int main(void)
 			  uint8_t crc = HAL_CRC_Calculate(&hcrc, (uint32_t *)&crsfBuffer[2], 23);
 			  if (crsfBuffer[25] == crc) {
 				  // valid packet
+				  decode11BitChannels((const uint8_t *)(&crsfBuffer[3]), CRSF_MAX_CHANNELS, *channelData, 2U, 1U, 0U);
 
 				  // send back dummy telemetry
 				  uint8_t telemetry[] = "\x14\xA2\xA2\x55\x65\x02\x00\x05\x96\x44\x22";
