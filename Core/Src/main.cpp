@@ -39,6 +39,7 @@
 #include "telemetry.h"
 #include "orientation/orientationsensor.h"
 #include "altitude/altitudesensor.h"
+#include "crsf.h"
 
 extern DMA_HandleTypeDef hdma_usart3_rx;
 
@@ -51,9 +52,6 @@ extern DMA_HandleTypeDef hdma_usart3_rx;
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
-#define CRSF_MAX_CHANNELS   16U      // Maximum number of channels from crsf datastream
-#define CRSF_FRAMELEN_MAX   64U      // maximum possible framelength
 
 /* USER CODE END PD */
 
@@ -237,9 +235,6 @@ int main(void)
 	rfLink = new RfLink(&htim4, transmitter);
 	rfLink->init();
 	rfLink->onTransmit = [](Packet &packet) {
-//		for (unsigned i = 0; i < 8; i++) {
-//			(*channelData)[i]->value = testData;
-//		}
 		channelData->fillRawChannelData(packet);
 	};
 	if (!transmitter) {
