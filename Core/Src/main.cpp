@@ -256,15 +256,16 @@ int main(void)
 		float pwm6 = 139999 + (*channelData)[5]->value * resolution;
 		float pwm7 = 139999 + (*channelData)[6]->value * resolution;
 		float pwm8 = 139999 + (*channelData)[7]->value * resolution;
+		// !!!!!!!!! Make sure we will be in the range !!!!!!!!!!!!!!!
 
-		__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, pwm5);
+		__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_4, pwm1);
+		__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, pwm2);
 		__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_2, pwm3);
-		__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, pwm1);
-		__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_4, pwm2);
-		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_1, pwm7);
-		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_2, pwm8);
-		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_3, pwm4);
+		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_2, pwm4);
+		__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, pwm5);
 		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_4, pwm6);
+		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_1, pwm7);
+		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_3, pwm8);
 	};
 	rfLink->onReceiveTelemetry = [](Packet &packet) {
 ////		*telemetry = packet;
