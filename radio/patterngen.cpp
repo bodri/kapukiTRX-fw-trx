@@ -19,11 +19,10 @@
 PatternGenerator::PatternGenerator(const uint8_t *hopSet, size_t size) {
     usedNumberOfHops = std::max((size_t)1, std::min(sizeof(PatternGenerator::defaultHopSet), size));
 
+    this->hopSet.reserve(usedNumberOfHops);
     for (size_t i = 0; i < usedNumberOfHops; i++) {
     	this->hopSet.push_back(hopSet && size > 0 ? hopSet[i] : PatternGenerator::defaultHopSet[i]);
     }
-
-    this->hopSet.shrink_to_fit();
 }
 
 uint8_t PatternGenerator::currentChannel(void) {

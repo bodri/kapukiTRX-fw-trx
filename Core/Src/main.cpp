@@ -206,7 +206,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   // Check if this is a transmitter?
-  transmitter = HAL_GPIO_ReadPin(TXMODE_GPIO_Port, TXMODE_Pin) == GPIO_PIN_SET ? false : true;
+//  transmitter = HAL_GPIO_ReadPin(TXMODE_GPIO_Port, TXMODE_Pin) == GPIO_PIN_SET ? false : true;
 
   Pin redLed = Pin(LEDRED_GPIO_Port, LEDRED_Pin);
   Pin greenLed = Pin(LEDGREEN_GPIO_Port, LEDGREEN_Pin);
@@ -316,8 +316,9 @@ int main(void)
 
 	  if (crsfPacketReceived) {
 		  if (crsfBuffer[0] == 0xee) {
-			  uint8_t crc = HAL_CRC_Calculate(&hcrc, (uint32_t *)&crsfBuffer[2], 23);
-			  if (crsfBuffer[25] == crc) {
+			  uint8_t payloadLength = crsfBuffer[1];
+			  uint8_t crc = HAL_CRC_Calculate(&hcrc, (uint32_t *)&crsfBuffer[2], payloadLength - 1);
+			  if (crsfBuffer[payloadLength + 1] == crc) {
 				  // valid packet
 				  decode11BitChannels((const uint8_t *)(&crsfBuffer[3]), CRSF_MAX_CHANNELS, *channelData, 2U, 1U, 0U);
 

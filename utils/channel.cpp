@@ -43,7 +43,7 @@ void ChannelData::fillRawChannelData(Packet &packet) {
 		return;
 	}
 
-	uint8_t *rawData = packet.payload;
+	auto rawData = packet.payload;
 	for (size_t i = 0; i < channels.size(); rawData	+= 3) {
 		uint16_t value = channels[i++]->value;
 		*(rawData) = (uint8_t)value;

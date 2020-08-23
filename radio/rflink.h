@@ -26,7 +26,7 @@ typedef enum {
 	TELEMETRY
 } PacketType;
 
-typedef struct {
+typedef struct __attribute__ ((__packed__)) {
 	uint8_t size;
 	struct {
 		uint16_t packetType : 3;
