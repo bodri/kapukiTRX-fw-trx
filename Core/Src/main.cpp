@@ -80,33 +80,32 @@ volatile bool crsfFrameError { false };
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
 
-struct Channels11Bit {
+typedef struct __attribute__ ((__packed__)) {
     // 176 bits of data (11 bits per channel * 16 channels) = 22 bytes.
-#if __BYTE_ORDER != __LITTLE_ENDIAN
-#error "Only supported on little-endian architectures"
-#endif
-    uint32_t ch0 : 11;
-    uint32_t ch1 : 11;
-    uint32_t ch2 : 11;
-    uint32_t ch3 : 11;
-    uint32_t ch4 : 11;
-    uint32_t ch5 : 11;
-    uint32_t ch6 : 11;
-    uint32_t ch7 : 11;
-    uint32_t ch8 : 11;
-    uint32_t ch9 : 11;
-    uint32_t ch10 : 11;
-    uint32_t ch11 : 11;
-    uint32_t ch12 : 11;
-    uint32_t ch13 : 11;
-    uint32_t ch14 : 11;
-    uint32_t ch15 : 11;
-};
+    uint16_t ch0 : 11;
+    uint16_t ch1 : 11;
+    uint16_t ch2 : 11;
+    uint16_t ch3 : 11;
+    uint16_t ch4 : 11;
+    uint16_t ch5 : 11;
+    uint16_t ch6 : 11;
+    uint16_t ch7 : 11;
+    uint16_t ch8 : 11;
+    uint16_t ch9 : 11;
+    uint16_t ch10 : 11;
+    uint16_t ch11 : 11;
+    uint16_t ch12 : 11;
+    uint16_t ch13 : 11;
+    uint16_t ch14 : 11;
+    uint16_t ch15 : 11;
+} Channels11Bit;
+
+Channels11Bit* channels;
 
 void decode11BitChannels(const uint8_t* data, uint8_t nchannels, ChannelData &channelData, uint16_t mult, uint16_t div, uint16_t offset) {
 #define CHANNEL_SCALE(x) ((int32_t(x) * mult) / div + offset)
 
-    const Channels11Bit* channels = (const Channels11Bit *)data;
+    channels = (Channels11Bit *)data;
     channelData[0]->value = CHANNEL_SCALE(channels->ch0);
     channelData[1]->value = CHANNEL_SCALE(channels->ch1);
     channelData[2]->value = CHANNEL_SCALE(channels->ch2);
@@ -207,7 +206,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   // Check if this is a transmitter?
-//  transmitter = HAL_GPIO_ReadPin(TXMODE_GPIO_Port, TXMODE_Pin) == GPIO_PIN_SET ? false : true;
+  transmitter = HAL_GPIO_ReadPin(TXMODE_GPIO_Port, TXMODE_Pin) == GPIO_PIN_SET ? false : true;
 
   Pin redLed = Pin(LEDRED_GPIO_Port, LEDRED_Pin);
   Pin greenLed = Pin(LEDGREEN_GPIO_Port, LEDGREEN_Pin);
