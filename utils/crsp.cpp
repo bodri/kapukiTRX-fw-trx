@@ -16,9 +16,27 @@
 #include "usart.h"
 #include "crc.h"
 
+Crossfire::Crossfire(UART_HandleTypeDef *serialPort, CRC_HandleTypeDef *crc): serialPort(serialPort), crc(crc) {
+	__HAL_UART_ENABLE_IT(serialPort, UART_IT_IDLE);
+//	HAL_UART_Receive_DMA(serialPort, crsfBuffer, sizeof(crsfBuffer));
+}
+
+void Crossfire::processSerialError(UART_HandleTypeDef *huart) {
+	if (huart->Instance != serialPort->Instance) {
+		return;
+	}
+
+	__HAL_UART_CLEAR_OREFLAG(huart);
+	__HAL_UART_CLEAR_PEFLAG(huart);
+	__HAL_UART_CLEAR_NEFLAG(huart);
+	__HAL_UART_CLEAR_FEFLAG(huart);
+	__HAL_UART_DISABLE_IT(huart, UART_IT_ERR);
+	frameError = true;
+}
+
 void Crossfire::decodePacket(uint8_t *buffer, size_t maxBufferLength, ChannelData &channelData) {
 	  if (frameError) {
-		  HAL_UART_Receive_DMA(&huart3, serialBuffer, sizeof(serialBuffer));
+		  HAL_UART_Receive_DMA(serialPort, serialBuffer, sizeof(serialBuffer));
 		  frameError = false;
 	  }
 
@@ -26,28 +44,17 @@ void Crossfire::decodePacket(uint8_t *buffer, size_t maxBufferLength, ChannelDat
 		  memcpy(serialBuffer, buffer, std::min(sizeof(serialBuffer), maxBufferLength));
 
 		  if (serialBuffer[0] == 0xEE) {
-			  uint8_t len = serialBuffer[1] - 1;
-			  uint8_t crc = HAL_CRC_Calculate(&hcrc, (uint32_t *)&serialBuffer[2], len);
-			  if (serialBuffer[len + 2] == crc) {
+			  uint8_t payloadLength = serialBuffer[1];
+			  uint8_t calculateCrc = HAL_CRC_Calculate(crc, (uint32_t *)&serialBuffer[2], payloadLength - 1);
+			  if (serialBuffer[payloadLength + 1] == calculateCrc) {
 				  // valid packet
 				  decode11BitChannels((const uint8_t *)(&serialBuffer[3]), CRSF_MAX_CHANNELS, channelData, 2U, 1U, 0U);
 
-				  // send back dummy telemetry
-				  uint8_t telemetry[] = "\x14\xA2\xA2\x55\x65\x02\x00\x05\x96\x44\x22";
-				  static uint8_t buffer[sizeof(telemetry) + 2];
-				  size_t len = sizeof(telemetry) - 1;
-				  memcpy(&buffer[2], &telemetry[0], len);
-				  buffer[0] = 0xEA;
-				  buffer[1] = len + 1;
-				  buffer[sizeof(buffer) - 1] = HAL_CRC_Calculate(&hcrc, (uint32_t *)&telemetry[0], len);
-				  for (int i = 0; i < 1000; i++) { }
-				  HAL_UART_Transmit_DMA(&huart3, buffer, sizeof(buffer));
-			  } else {
-				  for (int i = 0; i < 100; i++) { }
+				  sendBackTelemetry();
 			  }
 		  }
 
-		  HAL_UART_Receive_DMA(&huart3, serialBuffer, sizeof(serialBuffer));
+		  HAL_UART_Receive_DMA(serialPort, serialBuffer, sizeof(serialBuffer));
 		  packetReceived = false;
 	  }
 }
@@ -77,4 +84,41 @@ void Crossfire::decode11BitChannels(const uint8_t *data, uint8_t numberOfChannel
 //inline void Crossfire::scaleChannel(uint16_t mult, uint16_t div, uint16_t offset) {
 //	return ((int32_t(x) * mult) / div + offset)
 //}
+
+void Crossfire::sendBackTelemetry() {
+	sendLinkStatistics();
+}
+
+void Crossfire::sendLinkStatistics() {
+//	linkStatistics.rxRssi1 = 78;
+//	linkStatistics.rxRssi2 = 99;
+//	linkStatistics.rxQuality = 34;
+//	linkStatistics.rxSnr = 22;
+//	linkStatistics.antenna = 1;
+//	linkStatistics.rfMode = 0;
+//	linkStatistics.txPower = 3;
+//	linkStatistics.txRssi = 77;
+//	linkStatistics.txQuality = 56;
+//	linkStatistics.txSnr = 12;
+//
+//	size_t len = sizeof(LinkStatisticsFrame);
+//	telemetryBuffer[0] = 0xEA;
+//	telemetryBuffer[1] = len + 1;
+//	memcpy(&telemetryBuffer[3], linkStatistics, len);
+//
+//	telemetryBuffer[len + 2] = HAL_CRC_Calculate(crc, (uint32_t*)&telemetryBuffer[2], len);
+//
+//	HAL_UART_Transmit_DMA(serialPort, telemetryBuffer, len + 3);
+
+	uint8_t telemetry[] = "\x14\xA2\xA2\x55\x65\x02\x00\x05\x96\x44\x22";
+	static uint8_t buffer[sizeof(telemetry) + 2];
+	size_t len = sizeof(telemetry) - 1;
+
+	memcpy(&buffer[2], &telemetry[0], len);
+	buffer[0] = 0xEA;
+	buffer[1] = len + 1;
+	buffer[sizeof(buffer) - 1] = HAL_CRC_Calculate(crc, (uint32_t*) &telemetry[0], len);
+
+	HAL_UART_Transmit_DMA(serialPort, buffer, sizeof(buffer));
+}
 
