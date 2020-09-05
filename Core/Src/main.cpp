@@ -71,59 +71,14 @@ ChannelData *channelData;
 Telemetry *telemetry;
 Crossfire *crossfire;
 
-uint8_t crsfBuffer[26] { 0 };
+uint8_t crsfBuffer[CRSF_FRAMELEN_MAX] { 0 };
 volatile bool crsfPacketReceived { false };
-volatile bool crsfFrameError { false };
 
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
-
-typedef struct __attribute__ ((__packed__)) {
-    // 176 bits of data (11 bits per channel * 16 channels) = 22 bytes.
-    uint16_t ch0 : 11;
-    uint16_t ch1 : 11;
-    uint16_t ch2 : 11;
-    uint16_t ch3 : 11;
-    uint16_t ch4 : 11;
-    uint16_t ch5 : 11;
-    uint16_t ch6 : 11;
-    uint16_t ch7 : 11;
-    uint16_t ch8 : 11;
-    uint16_t ch9 : 11;
-    uint16_t ch10 : 11;
-    uint16_t ch11 : 11;
-    uint16_t ch12 : 11;
-    uint16_t ch13 : 11;
-    uint16_t ch14 : 11;
-    uint16_t ch15 : 11;
-} Channels11Bit;
-
-Channels11Bit* channels;
-
-void decode11BitChannels(const uint8_t* data, uint8_t nchannels, ChannelData &channelData, uint16_t mult, uint16_t div, uint16_t offset) {
-#define CHANNEL_SCALE(x) ((int32_t(x) * mult) / div + offset)
-
-    channels = (Channels11Bit *)data;
-    channelData[0]->value = CHANNEL_SCALE(channels->ch0);
-    channelData[1]->value = CHANNEL_SCALE(channels->ch1);
-    channelData[2]->value = CHANNEL_SCALE(channels->ch2);
-    channelData[3]->value = CHANNEL_SCALE(channels->ch3);
-    channelData[4]->value = CHANNEL_SCALE(channels->ch4);
-    channelData[5]->value = CHANNEL_SCALE(channels->ch5);
-    channelData[6]->value = CHANNEL_SCALE(channels->ch6);
-    channelData[7]->value = CHANNEL_SCALE(channels->ch7);
-    channelData[8]->value = CHANNEL_SCALE(channels->ch8);
-    channelData[9]->value = CHANNEL_SCALE(channels->ch9);
-    channelData[10]->value = CHANNEL_SCALE(channels->ch10);
-    channelData[11]->value = CHANNEL_SCALE(channels->ch11);
-    channelData[12]->value = CHANNEL_SCALE(channels->ch12);
-    channelData[13]->value = CHANNEL_SCALE(channels->ch13);
-    channelData[14]->value = CHANNEL_SCALE(channels->ch14);
-    channelData[15]->value = CHANNEL_SCALE(channels->ch15);
-}
 
 /* USER CODE END PFP */
 
@@ -147,20 +102,11 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-	crossfire->processRxComplete(huart);
-//	if (huart->Instance == USART3) {
-//		crsfPacketReceived = true;
-//	}
+	crossfire->processRxComplete(huart, &crsfPacketReceived);
 }
 
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
 	crossfire->processSerialError(huart);
-//	__HAL_UART_CLEAR_OREFLAG(huart);
-//	__HAL_UART_CLEAR_PEFLAG(huart);
-//	__HAL_UART_CLEAR_NEFLAG(huart);
-//	__HAL_UART_CLEAR_FEFLAG(huart);
-//	__HAL_UART_DISABLE_IT(huart, UART_IT_ERR);
-//	crsfFrameError = true;
 }
 
 /* USER CODE END 0 */
@@ -315,40 +261,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-
-	  if (crsfFrameError) {
-		  HAL_UART_Receive_DMA(&huart3, crsfBuffer, sizeof(crsfBuffer));
-		  crsfFrameError = false;
-	  }
-
-	  if (crsfPacketReceived) {
-		  if (crsfBuffer[0] == 0xee) {
-			  size_t payloadLength = crsfBuffer[1];
-			  if (payloadLength > 0 && payloadLength + 1 < sizeof(crsfBuffer)) {
-				  uint8_t crc = HAL_CRC_Calculate(&hcrc, (uint32_t *)&crsfBuffer[2], payloadLength - 1);
-				  if (crsfBuffer[payloadLength + 1] == crc) {
-					  // valid packet
-					  decode11BitChannels((const uint8_t *)(&crsfBuffer[3]), CRSF_MAX_CHANNELS, *channelData, 2U, 1U, 0U);
-
-					  // send back dummy telemetry
-					  uint8_t telemetry[] = "\x14\xA2\xA2\x55\x65\x02\x00\x05\x96\x44\x22";
-					  static uint8_t buffer[sizeof(telemetry) + 2];
-					  size_t len = sizeof(telemetry) - 1;
-					  memcpy(&buffer[2], &telemetry[0], len);
-					  buffer[0] = 0xEA;
-					  buffer[1] = len + 1;
-					  buffer[sizeof(buffer) - 1] = HAL_CRC_Calculate(&hcrc, (uint32_t *)&telemetry[0], len);
-					  for (int i = 0; i < 1000; i++) { }
-					  HAL_UART_Transmit_DMA(&huart3, buffer, sizeof(buffer));
-				  } else {
-					  for (int i = 0; i < 100; i++) { }
-				  }
-			  }
-		  }
-
-		  HAL_UART_Receive_DMA(&huart3, crsfBuffer, sizeof(crsfBuffer));
-		  crsfPacketReceived = false;
-	  }
+	crossfire->decodePacket(crsfBuffer, CRSF_FRAMELEN_MAX, *channelData, &crsfPacketReceived);
 
 //	  if (HAL_I2C_Master_Transmit(&hi2c1, address, buffer, 1, 1000000) == HAL_OK) {
 //		  HAL_GPIO_WritePin(LEDRED_GPIO_Port, LEDRED_Pin, GPIO_PIN_RESET);

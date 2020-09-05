@@ -27,9 +27,9 @@ class Crossfire {
 public:
 	Crossfire(UART_HandleTypeDef *serialPort, CRC_HandleTypeDef *crc);
 
-	void processRxComplete(UART_HandleTypeDef *huart) { if (huart->Instance == serialPort->Instance) packetReceived = true; }
+	void processRxComplete(UART_HandleTypeDef *huart, volatile bool *packetReceived) { if (huart->Instance == serialPort->Instance) *packetReceived = true; }
 	void processSerialError(UART_HandleTypeDef *huart);
-	void decodePacket(uint8_t *buffer, size_t maxBufferLength, ChannelData &channelData);
+	void decodePacket(uint8_t *buffer, size_t maxBufferLength, ChannelData &channelData, volatile bool *packetReceived);
 
 private:
     struct Frame {
@@ -39,7 +39,7 @@ private:
     } __attribute__ ((__packed__));
 
     struct LinkStatisticsFrame {
-    	static const uint8_t type { 0x14 };
+    	const uint8_t type { 0x14 };
         uint8_t rxRssi1;		// ( dBm * -1 )
         uint8_t rxRssi2;		// ( dBm * -1 )
         uint8_t rxQuality;		// Package success rate / Link quality ( % )
@@ -53,7 +53,7 @@ private:
     } __attribute__ ((__packed__));
 
     struct GpsFrame {			// curious fact, calling this GPS makes sizeof(GPS) return 1!
-    	static const uint8_t type { 0x02 };
+    	const uint8_t type { 0x02 };
         int32_t latitude;		// ( degree / 10`000`000 )
         int32_t longitude;		// (degree / 10`000`000 )
         uint16_t groundSpeed;	// ( km/h / 100 )
@@ -63,7 +63,7 @@ private:
     } __attribute__ ((__packed__));
 
     struct BatteryFrame {
-    	static const uint8_t type { 0x08 };
+    	const uint8_t type { 0x08 };
         uint16_t voltage;		// ( mV * 100 )
         uint16_t current;		// ( mA * 100 )
         uint8_t capacity[3];	// ( mAh )
@@ -71,19 +71,19 @@ private:
     } __attribute__ ((__packed__));
 
     struct AttitudeFrame {
-    	static const uint8_t type { 0x1E };
+    	const uint8_t type { 0x1E };
         int16_t pitchangle;		// ( rad * 10000 )
         int16_t rollAngle;		// ( rad * 10000 )
         int16_t yawAngle;		// ( rad * 10000 )
     } __attribute__ ((__packed__));
 
     struct FlightModeFrame {
-    	static const uint8_t type { 0x21 };
+    	const uint8_t type { 0x21 };
         char flightMode[16];	// ( Null-terminated string )
     } __attribute__ ((__packed__));
 
     struct VarioFrame {
-    	static const uint8_t type { 0x07 };
+    	const uint8_t type { 0x07 };
     	int16_t verticalSpeed;	// ( m/s )
     } __attribute__ ((__packed__));
 
@@ -115,7 +115,6 @@ private:
 
 	uint8_t serialBuffer[CRSF_FRAMELEN_MAX] { 0 };
 	uint8_t telemetryBuffer[CRSF_FRAMELEN_MAX] { 0 };
-	volatile bool packetReceived { false };
 	volatile bool frameError { false };
 
 	LinkStatisticsFrame linkStatistics;
