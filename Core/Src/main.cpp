@@ -77,6 +77,7 @@ volatile bool crsfPacketReceived { false };
 // temp
 int8_t rssi1;
 int8_t rssi2;
+bool rxTracking { false };
 
 /* USER CODE END PV */
 
@@ -231,6 +232,7 @@ int main(void)
 	};
 
 	rfLink->onLinkStatusChange = [](bool tracking) {
+		rxTracking = tracking;
 		tracking ? visualStatus->setStatus(TRACKING) : visualStatus->setStatus(CONNECTION_LOST);
 	};
 
@@ -266,6 +268,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	crossfire->setRxRssi(rxTracking, rssi1, rssi2);
 	crossfire->decodePacket(crsfBuffer, CRSF_FRAMELEN_MAX, *channelData, &crsfPacketReceived);
 
 //	  if (HAL_I2C_Master_Transmit(&hi2c1, address, buffer, 1, 1000000) == HAL_OK) {

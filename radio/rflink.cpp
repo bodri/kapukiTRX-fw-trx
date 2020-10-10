@@ -281,6 +281,12 @@ bool RfLink::loadReceivedPacket(SX1280 *rfModule) {
 
 	packet.size = size;
 	if (transmitter) {
+		PacketStatus_t packetStatus;
+		rf1Module->getPacketStatus(&packetStatus);
+		rf1Rssi = packetStatus.Flrc.RssiSync; // save RSSI for telemetry purposes
+		rf2Module->getPacketStatus(&packetStatus);
+		rf2Rssi = packetStatus.Flrc.RssiSync; // save RSSI for telemetry purposes
+
 		if (onReceiveTelemetry != nullptr) {
 			onReceiveTelemetry(packet);
 			return true;
@@ -291,8 +297,10 @@ bool RfLink::loadReceivedPacket(SX1280 *rfModule) {
 			onReceive(packet);
 
 			PacketStatus_t packetStatus;
-			rfModule->getPacketStatus(&packetStatus);
-			(rfModule == rf1Module ? rf1Rssi : rf2Rssi)	= packetStatus.Flrc.RssiAvg; // save RSSI for telemetry purposes
+			rf1Module->getPacketStatus(&packetStatus);
+			rf1Rssi = packetStatus.Flrc.RssiSync; // save RSSI for telemetry purposes
+			rf2Module->getPacketStatus(&packetStatus);
+			rf2Rssi = packetStatus.Flrc.RssiSync; // save RSSI for telemetry purposes
 			return true;
 		}
 	}

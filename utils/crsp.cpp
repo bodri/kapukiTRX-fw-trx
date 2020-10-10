@@ -61,7 +61,6 @@ void Crossfire::decodePacket(uint8_t *buffer, size_t maxBufferLength, ChannelDat
 					  if (serialBuffer[2] == 0x32 && serialBuffer[6] == 0x05) {
 						  // get receiver id
 						  uint8_t receiverId = serialBuffer[7];
-						  for (int i = 0; i < 10; i++) { }
 					  }
 				  }
 			  }
@@ -99,7 +98,22 @@ void Crossfire::decode11BitChannels(const uint8_t *data, uint8_t numberOfChannel
 //}
 
 void Crossfire::sendBackTelemetry() {
-	sendLinkStatistics();
+	if (!tracking) {
+		return;
+	}
+
+	switch (telemetryTypeCounter) {
+	case 0:
+		sendLinkStatistics();
+		break;
+	default:
+		break;
+	}
+
+	telemetryTypeCounter++;
+	if (telemetryTypeCounter > 4) {
+		telemetryTypeCounter = 0;
+	}
 }
 
 void Crossfire::sendLinkStatistics() {
@@ -108,7 +122,7 @@ void Crossfire::sendLinkStatistics() {
 	linkStatistics.rxQuality = 34;
 	linkStatistics.rxSnr = 22;
 	linkStatistics.antenna = 1;
-	linkStatistics.rfMode = 0;
+	linkStatistics.rfMode = 2;
 	linkStatistics.txPower = 3;
 	linkStatistics.txRssi = 77;
 	linkStatistics.txQuality = 56;
