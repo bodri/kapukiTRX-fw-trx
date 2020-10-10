@@ -238,7 +238,6 @@ int main(void)
   //setup crossfire
   crossfire = new Crossfire(&huart3, &hcrc);
 
-//  __HAL_UART_ENABLE_IT(&huart3, UART_IT_IDLE);
   HAL_UART_Receive_DMA(&huart3, crsfBuffer, sizeof(crsfBuffer));
 
   /* USER CODE END 2 */

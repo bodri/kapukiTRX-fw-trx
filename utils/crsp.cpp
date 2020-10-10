@@ -44,15 +44,25 @@ void Crossfire::decodePacket(uint8_t *buffer, size_t maxBufferLength, ChannelDat
 		  size_t maxLength = std::min(sizeof(serialBuffer), maxBufferLength);
 		  memcpy(serialBuffer, buffer, maxLength);
 
-		  if (serialBuffer[0] == 0xEE) {
-			  size_t payloadLength = serialBuffer[1];
-			  if (payloadLength > 0 && payloadLength + 1 < maxLength) {
-				  uint8_t calculateCrc = HAL_CRC_Calculate(crc, (uint32_t *)&serialBuffer[2], payloadLength - 1);
-				  if (serialBuffer[payloadLength + 1] == calculateCrc) {
-					  // valid packet
-					  decode11BitChannels((const uint8_t *)(&serialBuffer[3]), CRSF_MAX_CHANNELS, channelData, 2U, 1U, 0U);
+		  size_t payloadLength = serialBuffer[1];
+		  if (payloadLength > 0 && payloadLength + 1 < maxLength) {
+			  uint8_t calculateCrc = HAL_CRC_Calculate(crc, (uint32_t *)&serialBuffer[2], payloadLength - 1);
+			  if (serialBuffer[payloadLength + 1] == calculateCrc) {
+				  // valid packet
 
-					  sendBackTelemetry();
+				  if (serialBuffer[0] == 0xEE) {
+					  if (serialBuffer[2] == 0x16) {
+						  // channel data
+						  decode11BitChannels((const uint8_t *)(&serialBuffer[3]), CRSF_MAX_CHANNELS, channelData, 2U, 1U, 0U);
+
+						  sendBackTelemetry();
+					  }
+				  } else if (serialBuffer[0] == 0xC8) {
+					  if (serialBuffer[2] == 0x32 && serialBuffer[6] == 0x05) {
+						  // get receiver id
+						  uint8_t receiverId = serialBuffer[7];
+						  for (int i = 0; i < 10; i++) { }
+					  }
 				  }
 			  }
 		  }
