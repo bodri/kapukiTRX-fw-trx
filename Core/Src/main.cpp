@@ -74,6 +74,10 @@ Crossfire *crossfire;
 uint8_t crsfBuffer[CRSF_FRAMELEN_MAX] { 0 };
 volatile bool crsfPacketReceived { false };
 
+// temp
+int8_t rssi1;
+int8_t rssi2;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -257,6 +261,8 @@ int main(void)
   {
 	rfLink->runLoop();
 	visualStatus->runLoop();
+	rssi1 = rfLink->rf1Rssi;
+	rssi2 = rfLink->rf2Rssi;
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

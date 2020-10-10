@@ -290,9 +290,9 @@ bool RfLink::loadReceivedPacket(SX1280 *rfModule) {
 		if (onReceive != nullptr) {
 			onReceive(packet);
 
-//				this->rssiAverage += packetStatus.Flrc.RssiAvg; // save RSSI for telemetry purposes
-//				this->rssiReceivedCount++;
-
+			PacketStatus_t packetStatus;
+			rfModule->getPacketStatus(&packetStatus);
+			(rfModule == rf1Module ? rf1Rssi : rf2Rssi)	= packetStatus.Flrc.RssiAvg; // save RSSI for telemetry purposes
 			return true;
 		}
 	}

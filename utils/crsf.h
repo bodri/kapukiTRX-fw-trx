@@ -27,6 +27,7 @@ class Crossfire {
 public:
 	Crossfire(UART_HandleTypeDef *serialPort, CRC_HandleTypeDef *crc);
 
+	void setRxRssi(int8_t rssi1, int8_t rssi2) { this->rssi1 = rssi1; this->rssi2 = rssi2; }
 	void processRxComplete(UART_HandleTypeDef *huart, volatile bool *packetReceived) { if (huart->Instance == serialPort->Instance) *packetReceived = true; }
 	void processSerialError(UART_HandleTypeDef *huart);
 	void decodePacket(uint8_t *buffer, size_t maxBufferLength, ChannelData &channelData, volatile bool *packetReceived);
@@ -118,6 +119,9 @@ private:
 	volatile bool frameError { false };
 
 	LinkStatisticsFrame linkStatistics;
+
+	int8_t rssi1;
+	int8_t rssi2;
 
 	void decode11BitChannels(const uint8_t *data, uint8_t numberOfChannels, ChannelData &channelData, uint16_t mult, uint16_t div, uint16_t offset);
 	void sendBackTelemetry();

@@ -69,6 +69,9 @@ public:
 		delete rf2Module;
 	};
 
+	int8_t rf1Rssi { 0 };
+	int8_t rf2Rssi { 0 };
+
 	void init();
 	void processHeartBeat(TIM_HandleTypeDef *htim);
 	void processIrqs(uint16_t pin);
@@ -110,8 +113,6 @@ private:
 	std::map<uint8_t, int> failuresPerChannel { };
 	uint16_t timerWhenSyncReceived { 3255 }; // = transmit time (2255us) + Tx offset (1000us)
 	uint16_t txOffsetInMicroSecond { 1000 };
-	int16_t rssiAverage { 0 };
-	uint8_t rssiReceivedCount { 0 };
 
 	const uint8_t lostPacketTreshold { 20 };
 	const uint8_t downLinkFrequency { 4 };

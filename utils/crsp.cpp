@@ -103,8 +103,8 @@ void Crossfire::sendBackTelemetry() {
 }
 
 void Crossfire::sendLinkStatistics() {
-	linkStatistics.rxRssi1 = 78;
-	linkStatistics.rxRssi2 = 99;
+	linkStatistics.rxRssi1 = -1 * rssi1;
+	linkStatistics.rxRssi2 = -1 * rssi2;
 	linkStatistics.rxQuality = 34;
 	linkStatistics.rxSnr = 22;
 	linkStatistics.antenna = 1;
