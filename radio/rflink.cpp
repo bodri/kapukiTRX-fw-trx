@@ -208,12 +208,12 @@ void RfLink::runLoop(void) {
 		}
 
 		if (module1Received && loadReceivedPacket(rf1Module)) {
-			if (transmitter) {
-				HAL_GPIO_WritePin(LEDBLUE_GPIO_Port, LEDBLUE_Pin, GPIO_PIN_RESET);
+			if (!transmitter) {
+				useRf1 = true;
 			}
 		} else if (module2Received && loadReceivedPacket(rf2Module)) {
-			if (transmitter) {
-				HAL_GPIO_WritePin(LEDBLUE_GPIO_Port, LEDBLUE_Pin, GPIO_PIN_SET);
+			if (!transmitter) {
+				useRf1 = false;
 			}
 		}
 		state = DONE;
@@ -354,7 +354,7 @@ void RfLink::sendPacket(Packet *packet) {
 //	HAL_GPIO_WritePin(SYNC_GPIO_Port, SYNC_Pin, GPIO_PIN_SET);
 	HAL_GPIO_WritePin(TXORRX_GPIO_Port, TXORRX_Pin, GPIO_PIN_SET);
 
-	useRf1 = !useRf1;
+	useRf1 = transmitter ? !useRf1 : useRf1; // for transmitter alternate modules, receiver uses the same module which received the last packet
 	SX1280 *rfModule = useRf1 ? rf1Module : rf2Module;
 	if (useRf1) {
 		rf2Module->standBy();
