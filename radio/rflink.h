@@ -117,6 +117,10 @@ private:
 	const uint8_t lostPacketTreshold { 20 };
 	const uint8_t downLinkFrequency { 4 };
 
+	int32_t rssi1Sum { 0 };
+	int32_t rssi2Sum { 0 };
+	int32_t rssiAverageCounter { 0 };
+
 	bool validPacket(SX1280 *rfModule);
 	bool loadReceivedPacket(SX1280 *rfModule);
 	bool shouldSendPacket(void);

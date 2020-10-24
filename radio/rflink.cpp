@@ -220,7 +220,7 @@ void RfLink::runLoop(void) {
 	}
 		break;
 	case TIMEOUT:
-		state = WAITING_FOR_NEXT_HOP;
+		state = DONE;
 		break;
 	case DONE: {
 //		if (packetNumber == 255) {
@@ -243,6 +243,17 @@ void RfLink::runLoop(void) {
 //		printf("Packet %d, RSSI: %ddBm, lqi: %d%%\n",
 //				packet->payload.packetNumber, rssiPowerLevel(packet->status.rssi),
 //				lqiPercentage(packet->status.linkQuality.lqi));
+
+		if (packetNumber % 50 == 0) {
+			if (rssiAverageCounter > 0) {
+				rf1Rssi = rssi1Sum / rssiAverageCounter;
+				rf2Rssi = rssi2Sum / rssiAverageCounter;
+			} else {
+				for (int i = 0; i < 10; i++) { }
+			}
+			rssi1Sum = rssi2Sum = 0;
+			rssiAverageCounter = 0;
+		}
 
 		if (onPrepareTelemetryPacket != nullptr) {
 			nextTelemetryPacketSize = onPrepareTelemetryPacket();
@@ -281,8 +292,9 @@ bool RfLink::loadReceivedPacket(SX1280 *rfModule) {
 
 	packet.size = size;
 	if (transmitter) {
-		rf1Rssi = rf1Module->getRssi(); // RX1 RSSI
-		rf2Rssi = rf2Module->getRssi(); // RX2 RSSI
+		rssi1Sum += rf1Module->getRssi(); // RX1 RSSI
+		rssi2Sum += rf2Module->getRssi(); // RX2 RSSI
+		rssiAverageCounter++;
 
 		if (onReceiveTelemetry != nullptr) {
 			onReceiveTelemetry(packet);
@@ -290,11 +302,13 @@ bool RfLink::loadReceivedPacket(SX1280 *rfModule) {
 		}
 	} else {
 		this->packetNumber = packet.status.packetNumber; // sync packetNumber with TX
+
+		rssi1Sum += rf1Module->getRssi(); // TX1 RSSI
+		rssi2Sum += rf2Module->getRssi(); // TX2 RSSI
+		rssiAverageCounter++;
+
 		if (onReceive != nullptr) {
 			onReceive(packet);
-
-			rf1Rssi = rf1Module->getRssi(); // TX1 RSSI
-			rf2Rssi = rf2Module->getRssi(); // TX2 RSSI
 			return true;
 		}
 	}
