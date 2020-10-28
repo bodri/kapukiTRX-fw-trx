@@ -14,7 +14,7 @@ class RemoteSensor : public Sensor {
 public:
 	SensorInfo sensorInfo;
 
-	RemoteSensor(uint16_t sensorInitInfo) { sensorInfo = sensorInitInfo; };
+	RemoteSensor(SensorInfo sensorInfo) : sensorInfo(sensorInfo) { };
 
 	bool start() override { return true; };
 	size_t dataSize() override { return 0; };
@@ -23,7 +23,5 @@ public:
 
 private:
 };
-
-
 
 #endif /* __REMOTESENSOR_H__ */

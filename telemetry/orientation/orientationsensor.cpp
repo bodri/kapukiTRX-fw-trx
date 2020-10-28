@@ -26,18 +26,12 @@ static void delayMilliSeconds(u32 msec);
 OrientationSensor::OrientationSensor(uint8_t i2cAddress) :
 	i2cAddress(i2cAddress << 1) {
 
-	TelemetryData *sensor = new TelemetryData(0, "Orientation Sensor", "", int8_tdt, 0);
-	temperature = new TelemetryData(1, "Temperature", "°C", int8_tdt, 0);
-	yawAngle = new TelemetryData(2, "Yaw angle", "°", int16_tdt, 2);
-	pitchAngle = new TelemetryData(3, "Pitch angle", "°", int16_tdt, 2);
-	rollAngle = new TelemetryData(4, "Roll angle", "°", int16_tdt, 2);
-
 	this->telemetryDataArray = {
-		  sensor,
-		  temperature,
-		  yawAngle,
-		  pitchAngle,
-		  rollAngle
+			new TelemetryData(SensorData::sensor, "Orientation Sensor", "", int8_tdt, 0),
+			new TelemetryData(SensorData::temperature, "Temperature", "°C", int8_tdt, 0),
+			new TelemetryData(SensorData::yawAngle, "Yaw angle", "°", int16_tdt, 2),
+			new TelemetryData(SensorData::pitchAngle, "Pitch angle", "°", int16_tdt, 2),
+			new TelemetryData(SensorData::rollAngle, "Roll angle", "°", int16_tdt, 2)
 	};
 
 	// Calculate size
@@ -45,7 +39,7 @@ OrientationSensor::OrientationSensor(uint8_t i2cAddress) :
 		telemetryDataSize += telemetryData->valueSize() + 1;
 	}
 
-	sensorInfo.identifier = 0x1;
+	sensorInfo.identifier = orientationSensor;
 	sensorInfo.numberOfTelemetryData = telemetryDataArray.size() - 1;
 	telemetryDataSize += sizeof(SensorInfo) - 1; // + sensorInfo - 1 for telemetryDataArray[0]
 }
@@ -96,10 +90,10 @@ std::string OrientationSensor::getData() {
 
 	s8 temp = getTemperature();
 	bno055_euler_double_t eulerVector = getEulerVector();
-	temperature->setValue(temp);
-	yawAngle->setValue((int16_t)(eulerVector.h * 100));
-	pitchAngle->setValue((int16_t)(eulerVector.r * 100));
-	rollAngle->setValue((int16_t)(eulerVector.p * 100));
+	getTelemetryDataAt(SensorData::temperature)->setValue(temp);
+	getTelemetryDataAt(SensorData::yawAngle)->setValue((int16_t)(eulerVector.h * 100));
+	getTelemetryDataAt(SensorData::pitchAngle)->setValue((int16_t)(eulerVector.r * 100));
+	getTelemetryDataAt(SensorData::rollAngle)->setValue((int16_t)(eulerVector.p * 100));
 
 
 	buffer.resize(2);

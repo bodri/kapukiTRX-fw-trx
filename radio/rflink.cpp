@@ -12,6 +12,9 @@
  */
 
 #include "rflink.h"
+#include "telemetry.h"
+#include "radio/transmittersensor.h"
+#include "radio/receiversensor.h"
 
 #include "spi.h"
 
@@ -187,6 +190,7 @@ void RfLink::runLoop(void) {
 		}
 		break;
 	case ENTER_RX:
+		expectedPacketNumber++;
 		enterRx();
 		state = IDLE;
 		break;
@@ -244,15 +248,27 @@ void RfLink::runLoop(void) {
 //				packet->payload.packetNumber, rssiPowerLevel(packet->status.rssi),
 //				lqiPercentage(packet->status.linkQuality.lqi));
 
+		// RSSI
 		if (packetNumber % 50 == 0) {
 			if (rssiAverageCounter > 0) {
 				rf1Rssi = rssi1Sum / rssiAverageCounter;
 				rf2Rssi = rssi2Sum / rssiAverageCounter;
 			} else {
-				for (int i = 0; i < 10; i++) { }
+				rf1Rssi = rf2Rssi = 0;
 			}
 			rssi1Sum = rssi2Sum = 0;
 			rssiAverageCounter = 0;
+		}
+
+		// Link Quality
+		if (packetNumber % 100 == 0) { // 80 tx packets + 20 rx packets
+			if (receiverPacketCounter > 0) {
+				linkQuality = expectedPacketNumber / receiverPacketCounter;
+			} else {
+				linkQuality = 0;
+			}
+			expectedPacketNumber = 0;
+			receiverPacketCounter = 0;
 		}
 
 		if (onPrepareTelemetryPacket != nullptr) {
@@ -270,6 +286,21 @@ void RfLink::runLoop(void) {
 		break;
 	default:
 		break;
+	}
+}
+
+void RfLink::setTelemetry(Telemetry *telemetry) {
+	Sensor *sensor = telemetry->getSensor(transmitter ? transmitterSensor : receiverSensor);
+	if (!sensor) { return; }
+
+	if (transmitter) {
+		sensor->getTelemetryDataAt(TransmitterSensor::SensorData::rssi1)->setValue(rf1Rssi);
+		sensor->getTelemetryDataAt(TransmitterSensor::SensorData::rssi2)->setValue(rf2Rssi);
+		sensor->getTelemetryDataAt(TransmitterSensor::SensorData::linkQuality)->setValue(linkQuality);
+	} else {
+		sensor->getTelemetryDataAt(ReceiverSensor::SensorData::rssi1)->setValue(rf1Rssi);
+		sensor->getTelemetryDataAt(ReceiverSensor::SensorData::rssi2)->setValue(rf2Rssi);
+		sensor->getTelemetryDataAt(ReceiverSensor::SensorData::linkQuality)->setValue(linkQuality);
 	}
 }
 
@@ -295,6 +326,7 @@ bool RfLink::loadReceivedPacket(SX1280 *rfModule) {
 		rssi1Sum += rf1Module->getRssi(); // RX1 RSSI
 		rssi2Sum += rf2Module->getRssi(); // RX2 RSSI
 		rssiAverageCounter++;
+		receiverPacketCounter++;
 
 		if (onReceiveTelemetry != nullptr) {
 			onReceiveTelemetry(packet);
@@ -306,6 +338,7 @@ bool RfLink::loadReceivedPacket(SX1280 *rfModule) {
 		rssi1Sum += rf1Module->getRssi(); // TX1 RSSI
 		rssi2Sum += rf2Module->getRssi(); // TX2 RSSI
 		rssiAverageCounter++;
+		receiverPacketCounter++;
 
 		if (onReceive != nullptr) {
 			onReceive(packet);

@@ -21,6 +21,8 @@
 #include <stdint.h>
 #include <map>
 
+class Telemetry;
+
 typedef enum {
 	NORMAL = 1,
 	TELEMETRY
@@ -69,13 +71,11 @@ public:
 		delete rf2Module;
 	};
 
-	int8_t rf1Rssi { 0 };
-	int8_t rf2Rssi { 0 };
-
 	void init();
 	void processHeartBeat(TIM_HandleTypeDef *htim);
 	void processIrqs(uint16_t pin);
 	void runLoop(void);
+	void setTelemetry(Telemetry *telemetry);
 
 	std::function<void(Packet &packet)> onTransmit;
 	std::function<uint8_t()> onPrepareTelemetryPacket;
@@ -120,6 +120,11 @@ private:
 	int32_t rssi1Sum { 0 };
 	int32_t rssi2Sum { 0 };
 	int32_t rssiAverageCounter { 0 };
+	int8_t rf1Rssi { 0 };
+	int8_t rf2Rssi { 0 };
+	uint32_t expectedPacketNumber { 0 };
+	uint32_t receiverPacketCounter { 0 };
+	uint8_t linkQuality { 0 };
 
 	bool validPacket(SX1280 *rfModule);
 	bool loadReceivedPacket(SX1280 *rfModule);

@@ -13,6 +13,10 @@
 
 #include "telemetry.h"
 #include "remotesensor.h"
+#include "radio/receiversensor.h"
+#include "orientation/orientationsensor.h"
+#include "vario/variosensor.h"
+#include "telemetrydata.h"
 
 #include <cstring>
 #include <algorithm>
@@ -31,10 +35,23 @@ void Telemetry::processHeartBeat() {
 	}
 }
 
+Sensor *Telemetry::getSensor(SensorIdentifier identifier) {
+	std::vector<Sensor*>::iterator it = std::find_if(sensors.begin(),
+			sensors.end(), [&](const Sensor *elem) {
+				return elem->sensorInfo.identifier == identifier;
+			});
+	if (it != sensors.end()) {
+		return *it;
+	} else {
+		return nullptr;
+	}
+}
+
 Telemetry &Telemetry::operator= (const Packet& packet) {
 	for (unsigned i = 0; i < sizeof(packet.payload);) {
-		uint16_t sensorInfo = packet.payload[i] << 8 | packet.payload[i + 1];
-		if (sensorInfo >> 4 == 0) {
+		uint16_t sensorInfoData = (packet.payload[i] << 8) + packet.payload[i + 1];
+		SensorInfo sensorInfo = *reinterpret_cast<SensorInfo *>(&sensorInfoData);
+		if (sensorInfo.identifier == unknown) {
 			// no more sensors
 			return *this;
 		}
@@ -44,17 +61,17 @@ Telemetry &Telemetry::operator= (const Packet& packet) {
 		i += 2;
 		for (unsigned j = 0; j < sensor->sensorInfo.numberOfTelemetryData; j++) {
 			uint8_t headerData = packet.payload[i++];
-			uint8_t type = (headerData >> 2) & 0x3;
+			TelemetryDataHeader header = *reinterpret_cast<TelemetryDataHeader *>(&headerData);
 
-			TelemetryData *telemetryData = findOrCreateTelemetryData(sensor, headerData);
+			TelemetryData *telemetryData = findOrCreateTelemetryData(sensor, header);
 
 			int32_t value { 0 };
-			switch (type) {
-			case 3:
+			switch (header.type) {
+			case int32_tdt:
 				value = packet.payload[i++] << 24;
-			case 2:
+			case int24_tdt:
 				value |= packet.payload[i++] << 16;
-			case 1:
+			case int16_tdt:
 				value |= packet.payload[i++] << 8;
 			default:
 				value |= packet.payload[i++];
@@ -90,37 +107,41 @@ void Telemetry::sendTelemetryPacket(Packet& packet) {
 // Private
 //
 
-Sensor *Telemetry::findOrCreateRemoteSensor(uint16_t sensorInfoData) {
-	uint16_t sensorIdentifier = sensorInfoData >> 4;
-	std::vector<Sensor*>::iterator it = std::find_if(sensors.begin(),
-			sensors.end(), [&](const Sensor *elem) {
-				return elem->sensorInfo.identifier == sensorIdentifier;
-			});
-	if (it != sensors.end()) {
+Sensor *Telemetry::findOrCreateRemoteSensor(SensorInfo sensorInfo) {
+	Sensor *sensor = getSensor(static_cast<SensorIdentifier>(sensorInfo.identifier));
+	if (sensor) {
 		// sensor is already known
-		return *it;
+		return sensor;
 	} else {
 		// no it's an unknown sensor, so create it
-		Sensor *sensor = new RemoteSensor(sensorInfoData);
+		Sensor *sensor;
+		switch (sensorInfo.identifier) {
+		case SensorIdentifier::receiverSensor:
+			sensor = dynamic_cast<Sensor*>(new ReceiverSensor());
+			break;
+		case SensorIdentifier::orientationSensor:
+			sensor = dynamic_cast<Sensor*>(new OrientationSensor());
+			break;
+		case SensorIdentifier::varioSensor:
+			sensor = dynamic_cast<Sensor*>(new VarioSensor());
+			break;
+		default:
+			sensor = new RemoteSensor(sensorInfo);
+		}
+
 		sensors.push_back(sensor);
 		return sensor;
 	}
 }
 
-TelemetryData *Telemetry::findOrCreateTelemetryData(Sensor *sensor, uint8_t headerData) {
-	uint8_t position = headerData >> 4;
-	uint8_t type = (headerData >> 2) & 0x3;
-	std::vector<TelemetryData*>::iterator it = std::find_if(
-			sensor->telemetryDataArray.begin(),
-			sensor->telemetryDataArray.end(), [&](const TelemetryData *data) {
-				return data->header.position == position;
-			});
-	if (it != sensor->telemetryDataArray.end()) {
+TelemetryData *Telemetry::findOrCreateTelemetryData(Sensor *sensor, TelemetryDataHeader header) {
+	TelemetryData *telemetryData = sensor->getTelemetryDataAt(header.position);
+	if (telemetryData) {
 		// telemetry data is already known
-		return *it;
+		return telemetryData;
 	} else {
 		// create new telemetry data
-		TelemetryData *telemetryData = new TelemetryData(position, "", "", TelemetryDataType(type), 0);
+		TelemetryData *telemetryData = new TelemetryData(header.position, "", "", header.type, 0);
 		sensor->telemetryDataArray.push_back(telemetryData);
 		return telemetryData;
 	}

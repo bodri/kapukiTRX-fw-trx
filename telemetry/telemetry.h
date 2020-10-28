@@ -29,6 +29,7 @@ public:
 	void processHeartBeat();
 
 	Telemetry &operator= (const Packet& packet);
+	Sensor *getSensor(SensorIdentifier identifier);
 
 	uint8_t prepareTelemetryPacket();
 	void sendTelemetryPacket(Packet& packet);
@@ -37,8 +38,8 @@ private:
 	std::vector<Sensor *> sensors { };
 	std::string preparedTelemetryData { };
 
-	Sensor *findOrCreateRemoteSensor(uint16_t sensorInfoData);
-	TelemetryData *findOrCreateTelemetryData(Sensor *sensor, uint8_t headerData);
+	Sensor *findOrCreateRemoteSensor(SensorInfo sensorInfo);
+	TelemetryData *findOrCreateTelemetryData(Sensor *sensor, TelemetryDataHeader header);
 };
 
 

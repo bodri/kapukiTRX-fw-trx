@@ -2,7 +2,7 @@
  * @file altitudesensor.cpp
  * @brief Wrapper class for BMP388 pressure sensor.
  *
- * @author Varadi, Gyorgy, aka bodri
+ * @author Varadi Gyorgy aka bodri
  * Contact: bodri@bodrico.com
  *
  * @bug No known bugs.
@@ -11,7 +11,7 @@
  *
  */
 
-#include "altitudesensor.h"
+#include <vario/variosensor.h>
 #include "main.h"
 #include "i2c.h"
 
@@ -23,16 +23,15 @@ static int8_t i2cWrite(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint
 static int8_t i2cRead(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint16_t len);
 static void delayMilliSeconds(uint32_t ms);
 
-AltitudeSensor::AltitudeSensor(uint8_t i2cAddress) :
+VarioSensor::VarioSensor(uint8_t i2cAddress) :
 	i2cAddress(i2cAddress << 1) {
-	TelemetryData *sensor = new TelemetryData(0, "Vario Sensor", "", int8_tdt, 0);
-	temperature = new TelemetryData(1, "Temperature", "°C", int8_tdt, 0);
-	pressure = new TelemetryData(2, "Pressure", "°", int24_tdt, 2);
 
 	this->telemetryDataArray = {
-		  sensor,
-		  temperature,
-		  pressure,
+			new TelemetryData(SensorData::sensor, "Variometer Sensor", "", int8_tdt, 0),
+			new TelemetryData(SensorData::temperature, "Temperature", "°C", int8_tdt, 0),
+			new TelemetryData(SensorData::pressure, "Pressure", "°", int24_tdt, 2),
+			new TelemetryData(SensorData::verticalSpeed, "Vertical Speed", "m/s", int16_tdt, 2),
+			new TelemetryData(SensorData::altitude, "Altitude", "m", int16_tdt, 0)
 	};
 
 	// Calculate size
@@ -40,12 +39,12 @@ AltitudeSensor::AltitudeSensor(uint8_t i2cAddress) :
 		telemetryDataSize += telemetryData->valueSize() + 1;
 	}
 
-	sensorInfo.identifier = 0x2;
+	sensorInfo.identifier = varioSensor;
 	sensorInfo.numberOfTelemetryData = telemetryDataArray.size() - 1;
 	telemetryDataSize += sizeof(SensorInfo) - 1; // + sensorInfo - 1 for telemetryDataArray[0]
 }
 
-bool AltitudeSensor::start() {
+bool VarioSensor::start() {
 	sensorDevice.dev_id = i2cAddress;
 	sensorDevice.intf = BMP3_I2C_INTF;
 	sensorDevice.read = &i2cRead;
@@ -77,21 +76,21 @@ bool AltitudeSensor::start() {
     return true;
 }
 
-std::string AltitudeSensor::getDescription() {
+std::string VarioSensor::getDescription() {
 	return "";
 }
 
-size_t AltitudeSensor::dataSize() {
+size_t VarioSensor::dataSize() {
 	return telemetryDataSize;
 }
 
-std::string AltitudeSensor::getData() {
+std::string VarioSensor::getData() {
 	std::string buffer;
 
 	std::shared_ptr<bmp3_data> data = performReading();
 	if (data) {
-		temperature->setValue((int8_t)data->temperature);
-		pressure->setValue((int32_t)data->pressure);
+		getTelemetryDataAt(SensorData::temperature)->setValue((int8_t)data->temperature);
+		getTelemetryDataAt(SensorData::pressure)->setValue((int32_t)data->pressure);
 
 		buffer.resize(2);
 		buffer[0] = (uint16_t)sensorInfo >> 8;
@@ -116,7 +115,7 @@ std::string AltitudeSensor::getData() {
 //	return 44330.0 * (1.0 - pow(atmospheric / seaLevel, 0.1903));
 //}
 
-std::shared_ptr<bmp3_data> AltitudeSensor::performReading(void) {
+std::shared_ptr<bmp3_data> VarioSensor::performReading(void) {
     struct bmp3_data data;
 
     if (bmp3_get_sensor_data(BMP3_ALL, &data, &sensorDevice) != BMP3_OK) {

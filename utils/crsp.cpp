@@ -12,9 +12,13 @@
  */
 
 #include "crsf.h"
+#include "radio/transmittersensor.h"
+#include "radio/receiversensor.h"
 
 #include "usart.h"
 #include "crc.h"
+
+#include <algorithm>
 
 Crossfire::Crossfire(UART_HandleTypeDef *serialPort, CRC_HandleTypeDef *crc): serialPort(serialPort), crc(crc) {
 	__HAL_UART_ENABLE_IT(serialPort, UART_IT_IDLE);
@@ -74,7 +78,7 @@ void Crossfire::decodePacket(uint8_t *buffer, size_t maxBufferLength, ChannelDat
 void Crossfire::decode11BitChannels(const uint8_t *data, uint8_t numberOfChannels, ChannelData &channelData, uint16_t mult, uint16_t div, uint16_t offset) {
 #define CHANNEL_SCALE(x) ((int32_t(x) * mult) / div + offset)
 
-    const Crossfire::Channels11Bit *channels = (const Channels11Bit *)data;
+    const Channels11Bit *channels = reinterpret_cast<const Channels11Bit *>(data);
     channelData[0]->value = CHANNEL_SCALE(channels->ch0);
     channelData[1]->value = CHANNEL_SCALE(channels->ch1);
     channelData[2]->value = CHANNEL_SCALE(channels->ch2);
@@ -117,16 +121,33 @@ void Crossfire::sendBackTelemetry() {
 }
 
 void Crossfire::sendLinkStatistics() {
-	linkStatistics.rxRssi1 = -1 * rssi1;
-	linkStatistics.rxRssi2 = -1 * rssi2;
-	linkStatistics.rxQuality = 34;
-	linkStatistics.rxSnr = 22;
+	Sensor *txSensor = telemetry->getSensor(transmitterSensor);
+	if (!txSensor) { return; }
+
+	uint8_t txRssi1 = txSensor->getTelemetryDataAt(ReceiverSensor::SensorData::rssi1)->getValue();
+	uint8_t txRssi2 = txSensor->getTelemetryDataAt(ReceiverSensor::SensorData::rssi2)->getValue();
+
+	uint8_t rxRssi1 { 0 };
+	uint8_t rxRssi2 { 0 };
+	uint8_t linkQuality { 0 };
+
+	Sensor *rxSensor = telemetry->getSensor(receiverSensor);
+	if (rxSensor) {
+		rxRssi1 = rxSensor->getTelemetryDataAt(ReceiverSensor::SensorData::rssi1)->getValue();
+		rxRssi2 = rxSensor->getTelemetryDataAt(ReceiverSensor::SensorData::rssi2)->getValue();
+		linkQuality = rxSensor->getTelemetryDataAt(ReceiverSensor::SensorData::linkQuality)->getValue();
+	}
+
+	linkStatistics.rxRssi1 = rxRssi1;
+	linkStatistics.rxRssi2 = rxRssi2;
+	linkStatistics.rxQuality = linkQuality;
+	linkStatistics.rxSnr = 100 - std::max(rxRssi1, rxRssi2);
 	linkStatistics.antenna = 1;
 	linkStatistics.rfMode = 2;
 	linkStatistics.txPower = 3;
-	linkStatistics.txRssi = 77;
-	linkStatistics.txQuality = 56;
-	linkStatistics.txSnr = 12;
+	linkStatistics.txRssi = std::max(txRssi1, txRssi2);
+	linkStatistics.txQuality = txSensor->getTelemetryDataAt(TransmitterSensor::SensorData::linkQuality)->getValue();
+	linkStatistics.txSnr = 100 - linkStatistics.txRssi;
 
 	size_t len = sizeof(LinkStatisticsFrame);
 	telemetryBuffer[0] = 0xEA;

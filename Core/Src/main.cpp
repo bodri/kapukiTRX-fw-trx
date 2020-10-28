@@ -18,6 +18,7 @@
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
+#include <vario/variosensor.h>
 #include "main.h"
 #include "crc.h"
 #include "dma.h"
@@ -38,7 +39,8 @@
 #include "channel.h"
 #include "telemetry.h"
 #include "orientation/orientationsensor.h"
-#include "altitude/altitudesensor.h"
+#include "radio/transmittersensor.h"
+#include "radio/receiversensor.h"
 #include "crsf.h"
 
 extern DMA_HandleTypeDef hdma_usart3_rx;
@@ -75,8 +77,6 @@ uint8_t crsfBuffer[CRSF_FRAMELEN_MAX] { 0 };
 volatile bool crsfPacketReceived { false };
 
 // temp
-int8_t rssi1;
-int8_t rssi2;
 bool rxTracking { false };
 
 /* USER CODE END PV */
@@ -174,14 +174,20 @@ int main(void)
 
 	// Setup telemetry
 	if (transmitter) {
-		telemetry = new Telemetry();
-	} else {
-		OrientationSensor *orientationSensor = new OrientationSensor();
-		AltitudeSensor *altitudeSensor = new AltitudeSensor(BMP3_I2C_ADDR_SEC);
+		TransmitterSensor *transmitterSensor = new TransmitterSensor();
 
 		telemetry = new Telemetry({
-		  orientationSensor,
-		  altitudeSensor
+			transmitterSensor
+		});
+	} else {
+		ReceiverSensor *receiverSensor = new ReceiverSensor();
+		OrientationSensor *orientationSensor = new OrientationSensor();
+		VarioSensor *varioSensor = new VarioSensor(BMP3_I2C_ADDR_SEC);
+
+		telemetry = new Telemetry({
+			receiverSensor,
+			orientationSensor,
+			varioSensor
 		});
 	}
 
@@ -263,12 +269,11 @@ int main(void)
   {
 	rfLink->runLoop();
 	visualStatus->runLoop();
-	rssi1 = rfLink->rf1Rssi;
-	rssi2 = rfLink->rf2Rssi;
+	rfLink->setTelemetry(telemetry);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	crossfire->setRxRssi(rxTracking, rssi1, rssi2);
+	crossfire->setTelemetry(rxTracking, telemetry);
 	crossfire->decodePacket(crsfBuffer, CRSF_FRAMELEN_MAX, *channelData, &crsfPacketReceived);
 
 //	  if (HAL_I2C_Master_Transmit(&hi2c1, address, buffer, 1, 1000000) == HAL_OK) {

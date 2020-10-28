@@ -1,6 +1,6 @@
 /**
- * @file receiversensor.h
- * @brief Sensor for receiver telemetry data.
+ * @file transmittersensor.h
+ * @brief Sensor for transmitter internal telemetry data.
  *
  * Sensor data:
  * 			Name			type		decimal point
@@ -15,21 +15,19 @@
  *
  */
 
-#ifndef __RECEIVERSENSOR_H__
-#define __RECEIVERSENSOR_H__
-
+#ifndef __TRANSMITTERSENSOR_H__
+#define __TRANSMITTERSENSOR_H__
 
 #include "sensor.h"
 
 #include <stdint.h>
 
-class ReceiverSensor : public Sensor {
+class TransmitterSensor : public Sensor {
 public:
-	ReceiverSensor();
+	TransmitterSensor();
 
 	enum SensorData {
 		sensor = 0,
-		receiverVoltage,
 		rssi1,
 		rssi2,
 		linkQuality
@@ -44,4 +42,6 @@ private:
 	size_t telemetryDataSize { 0 };
 };
 
-#endif //__RECEIVERSENSOR_H__
+
+
+#endif /* __TRANSMITTERSENSOR_H__ */

@@ -32,6 +32,14 @@ class OrientationSensor : public Sensor {
 public:
 	OrientationSensor(uint8_t i2cAddress = BNO055_I2C_ADDR1);
 
+	enum SensorData {
+		sensor = 0,
+		temperature,
+		yawAngle,
+		pitchAngle,
+		rollAngle
+	};
+
 	virtual bool start() override;
 	virtual size_t dataSize() override;
 	virtual std::string getDescription() override;
@@ -41,10 +49,6 @@ private:
 	uint8_t i2cAddress;
 	struct bno055_t sensorDevice;
 
-	TelemetryData *temperature;
-	TelemetryData *yawAngle;
-	TelemetryData *pitchAngle;
-	TelemetryData *rollAngle;
 	size_t telemetryDataSize { 0 };
 
 	int8_t getTemperature();

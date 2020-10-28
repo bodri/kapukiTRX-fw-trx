@@ -1,6 +1,6 @@
 /**
- * @file receiversensor.cpp
- * @brief Sensor for receiver telemetry data.
+ * @file transmittersensor.cpp
+ * @brief Sensor for transmitter internal telemetry data.
  *
  * @author Varadi, Gyorgy aka bodri
  * Contact: bodri@bodrico.com
@@ -11,14 +11,13 @@
  *
  */
 
-#include "receiversensor.h"
+#include "transmittersensor.h"
 
-ReceiverSensor::ReceiverSensor() {
+TransmitterSensor::TransmitterSensor() {
 	this->telemetryDataArray = {
-			new TelemetryData(SensorData::sensor, "Receiver", "", int8_tdt, 0),
-			new TelemetryData(SensorData::receiverVoltage, "RX Voltage", "V", int8_tdt, 1),
-			new TelemetryData(SensorData::rssi1, "RX RSSI #1", "dBm", int8_tdt, 0),
-			new TelemetryData(SensorData::rssi2, "RX RSSI #2", "dBm", int8_tdt, 0),
+			new TelemetryData(SensorData::sensor, "Transmitter", "", int8_tdt, 0),
+			new TelemetryData(SensorData::rssi1, "TX RSSI #1", "dBm", int8_tdt, 0),
+			new TelemetryData(SensorData::rssi2, "TX RSSI #2", "dBm", int8_tdt, 0),
 			new TelemetryData(SensorData::linkQuality, "Link Quality", "%", int8_tdt, 0)
 	};
 
@@ -27,25 +26,28 @@ ReceiverSensor::ReceiverSensor() {
 		telemetryDataSize += telemetryData->valueSize() + 1;
 	}
 
-	sensorInfo.identifier = receiverSensor;
+	sensorInfo.identifier = transmitterSensor;
 	sensorInfo.numberOfTelemetryData = telemetryDataArray.size() - 1;
 	telemetryDataSize += 1; // + sensorInfo - 1 for telemetryDataArray[0]
 }
 
-bool ReceiverSensor::start() {
+bool TransmitterSensor::start() {
     return true;
 }
 
-std::string ReceiverSensor::getDescription() {
+std::string TransmitterSensor::getDescription() {
 	return "";
 }
 
-size_t ReceiverSensor::dataSize() {
+size_t TransmitterSensor::dataSize() {
 	return telemetryDataSize;
 }
 
-std::string ReceiverSensor::getData() {
+std::string TransmitterSensor::getData() {
 	std::string buffer;
+
+//		temperature->setValue((int8_t)data->temperature);
+//		pressure->setValue((int32_t)data->pressure);
 
 	buffer.resize(2);
 	buffer[0] = (uint16_t)sensorInfo >> 8;
@@ -56,3 +58,6 @@ std::string ReceiverSensor::getData() {
 
 	return buffer;
 }
+
+
+
