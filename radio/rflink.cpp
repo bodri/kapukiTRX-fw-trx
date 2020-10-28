@@ -263,7 +263,7 @@ void RfLink::runLoop(void) {
 		// Link Quality
 		if (packetNumber % 100 == 0) { // 80 tx packets + 20 rx packets
 			if (receiverPacketCounter > 0) {
-				linkQuality = expectedPacketNumber / receiverPacketCounter;
+				linkQuality = expectedPacketNumber / receiverPacketCounter * 100;
 			} else {
 				linkQuality = 0;
 			}

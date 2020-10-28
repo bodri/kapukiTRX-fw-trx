@@ -273,8 +273,10 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	crossfire->setTelemetry(rxTracking, telemetry);
-	crossfire->decodePacket(crsfBuffer, CRSF_FRAMELEN_MAX, *channelData, &crsfPacketReceived);
+	if (transmitter) {
+		crossfire->setTelemetry(rxTracking, telemetry);
+		crossfire->decodePacket(crsfBuffer, CRSF_FRAMELEN_MAX, *channelData, &crsfPacketReceived);
+	}
 
 //	  if (HAL_I2C_Master_Transmit(&hi2c1, address, buffer, 1, 1000000) == HAL_OK) {
 //		  HAL_GPIO_WritePin(LEDRED_GPIO_Port, LEDRED_Pin, GPIO_PIN_RESET);

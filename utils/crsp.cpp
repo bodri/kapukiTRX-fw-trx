@@ -124,8 +124,8 @@ void Crossfire::sendLinkStatistics() {
 	Sensor *txSensor = telemetry->getSensor(transmitterSensor);
 	if (!txSensor) { return; }
 
-	uint8_t txRssi1 = txSensor->getTelemetryDataAt(ReceiverSensor::SensorData::rssi1)->getValue();
-	uint8_t txRssi2 = txSensor->getTelemetryDataAt(ReceiverSensor::SensorData::rssi2)->getValue();
+	uint8_t txRssi1 = txSensor->getTelemetryDataAt(TransmitterSensor::SensorData::rssi1)->getValue();
+	uint8_t txRssi2 = txSensor->getTelemetryDataAt(TransmitterSensor::SensorData::rssi2)->getValue();
 
 	uint8_t rxRssi1 { 0 };
 	uint8_t rxRssi2 { 0 };
@@ -140,14 +140,14 @@ void Crossfire::sendLinkStatistics() {
 
 	linkStatistics.rxRssi1 = rxRssi1;
 	linkStatistics.rxRssi2 = rxRssi2;
-	linkStatistics.rxQuality = linkQuality;
-	linkStatistics.rxSnr = 100 - std::max(rxRssi1, rxRssi2);
+	linkStatistics.rxQuality = 34; //linkQuality; // WTF: if this is 0 the transmission stops
+	linkStatistics.rxSnr = 100 + std::max(rxRssi1, rxRssi2); // Calculation for OpenTX RSSI
 	linkStatistics.antenna = 1;
 	linkStatistics.rfMode = 2;
 	linkStatistics.txPower = 3;
 	linkStatistics.txRssi = std::max(txRssi1, txRssi2);
 	linkStatistics.txQuality = txSensor->getTelemetryDataAt(TransmitterSensor::SensorData::linkQuality)->getValue();
-	linkStatistics.txSnr = 100 - linkStatistics.txRssi;
+	linkStatistics.txSnr = 100 + linkStatistics.txRssi;  // Calculation for OpenTX RSSI
 
 	size_t len = sizeof(LinkStatisticsFrame);
 	telemetryBuffer[0] = 0xEA;
