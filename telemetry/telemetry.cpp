@@ -48,9 +48,11 @@ Sensor *Telemetry::getSensor(SensorIdentifier identifier) {
 }
 
 Telemetry &Telemetry::operator= (const Packet& packet) {
-	for (unsigned i = 0; i < sizeof(packet.payload);) {
+	for (unsigned i = 0; i < packet.size;) {
+		SensorInfo sensorInfo;
+
 		uint16_t sensorInfoData = (packet.payload[i] << 8) + packet.payload[i + 1];
-		SensorInfo sensorInfo = *reinterpret_cast<SensorInfo *>(&sensorInfoData);
+		sensorInfo = sensorInfoData;
 		if (sensorInfo.identifier == unknown) {
 			// no more sensors
 			return *this;
@@ -60,8 +62,8 @@ Telemetry &Telemetry::operator= (const Packet& packet) {
 
 		i += 2;
 		for (unsigned j = 0; j < sensor->sensorInfo.numberOfTelemetryData; j++) {
-			uint8_t headerData = packet.payload[i++];
-			TelemetryDataHeader header = *reinterpret_cast<TelemetryDataHeader *>(&headerData);
+			TelemetryDataHeader header;
+			header = packet.payload[i++];
 
 			TelemetryData *telemetryData = findOrCreateTelemetryData(sensor, header);
 

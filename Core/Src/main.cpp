@@ -228,13 +228,7 @@ int main(void)
 		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_3, pwm8);
 	};
 	rfLink->onReceiveTelemetry = [](Packet &packet) {
-////		*telemetry = packet;
-//		char buffer[127];
-////		sprintf(buffer, "t:%d,y:%d,p:%d,r:%d", packet.payload[1], ((packet.payload[4] << 8) + packet.payload[3])/100, ((packet.payload[7] << 8) + packet.payload[6])/100, ((packet.payload[10] << 8) + packet.payload[9])/1000);
-//		memcpy(buffer, packet.payload, packet.size - 2);
-//		if (HAL_UART_Transmit(&huart3, (uint8_t *)buffer, packet.size - 2, 1000) != HAL_OK) {
-//			Error_Handler();
-//		}
+		*telemetry = packet;
 	};
 
 	rfLink->onLinkStatusChange = [](bool tracking) {
