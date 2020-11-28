@@ -177,7 +177,7 @@ void RfLink::runLoop(void) {
 		packetToSend = new Packet();
 		packetToSend->status.packetNumber = packetNumber;
 		packetToSend->status.packetType = telemetryPacket ? TELEMETRY : NORMAL;
-		packetToSend->size = telemetryPacket ? nextTelemetryPacketSize : 41; // TODO: for normal packets based on number of channels; for telemetry based on telemetry data points
+		packetToSend->size = telemetryPacket ? nextTelemetryPacketSize : 26; // TODO: for normal packets based on number of channels; for telemetry based on telemetry data points
 		// TODO: optimize: if no change in packet type, we should not set the same again
 		setPacketParams(telemetryPacket);
 		state = shouldSend ? WAITING_FOR_TX_OFFSET : ENTER_RX;
