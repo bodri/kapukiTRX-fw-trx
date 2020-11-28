@@ -25,6 +25,7 @@ class Telemetry;
 
 typedef enum {
 	NORMAL = 1,
+	OPENTX,
 	TELEMETRY
 } PacketType;
 
@@ -37,6 +38,53 @@ typedef struct __attribute__ ((__packed__)) {
 	} status;
 
 	uint8_t payload[127];
+
+	struct NormalChannels {
+	// 192 bits of data (12 bits per channel * 16 channels) = 24 bytes.
+	#if __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
+	#error "Only supported on little-endian architectures"
+	#endif
+		uint16_t ch0 : 12;
+		uint16_t ch1 : 12;
+		uint16_t ch2 : 12;
+		uint16_t ch3 : 12;
+		uint16_t ch4 : 12;
+		uint16_t ch5 : 12;
+		uint16_t ch6 : 12;
+		uint16_t ch7 : 12;
+		uint16_t ch8 : 12;
+		uint16_t ch9 : 12;
+		uint16_t ch10 : 12;
+		uint16_t ch11 : 12;
+		uint16_t ch12 : 12;
+		uint16_t ch13 : 12;
+		uint16_t ch14 : 12;
+		uint16_t ch15 : 12;
+	} __attribute__ ((__packed__));
+
+	struct OpenTxChannels {
+	// 176 bits of data (11 bits per channel * 16 channels) = 22 bytes.
+	#if __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
+	#error "Only supported on little-endian architectures"
+	#endif
+		uint16_t ch0 : 11;
+		uint16_t ch1 : 11;
+		uint16_t ch2 : 11;
+		uint16_t ch3 : 11;
+		uint16_t ch4 : 11;
+		uint16_t ch5 : 11;
+		uint16_t ch6 : 11;
+		uint16_t ch7 : 11;
+		uint16_t ch8 : 11;
+		uint16_t ch9 : 11;
+		uint16_t ch10 : 11;
+		uint16_t ch11 : 11;
+		uint16_t ch12 : 11;
+		uint16_t ch13 : 11;
+		uint16_t ch14 : 11;
+		uint16_t ch15 : 11;
+	} __attribute__ ((__packed__));
+
 } Packet;
 
 typedef enum {

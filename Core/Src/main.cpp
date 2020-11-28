@@ -114,6 +114,114 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
 	crossfire->processSerialError(huart);
 }
 
+void setUpChannels() {
+	channelData = new ChannelData(16);
+}
+
+void setUpStatusLeds() {
+	Pin redLed = Pin(LEDRED_GPIO_Port, LEDRED_Pin);
+	Pin greenLed = Pin(LEDGREEN_GPIO_Port, LEDGREEN_Pin);
+	Pin blueLed = Pin(LEDBLUE_GPIO_Port, LEDBLUE_Pin);
+	visualStatus = new VisualStatus(&htim4, redLed, greenLed, blueLed);
+}
+
+void setUpTelemetry() {
+	if (transmitter) {
+		TransmitterSensor *transmitterSensor = new TransmitterSensor();
+
+		telemetry = new Telemetry({
+			transmitterSensor
+		});
+	} else {
+		ReceiverSensor *receiverSensor = new ReceiverSensor();
+		OrientationSensor *orientationSensor = new OrientationSensor();
+		VarioSensor *varioSensor = new VarioSensor(BMP3_I2C_ADDR_SEC);
+
+		telemetry = new Telemetry({
+			receiverSensor,
+			orientationSensor,
+			varioSensor
+		});
+	}
+}
+
+void setUpRfLink() {
+	// Power up RF modules
+	HAL_GPIO_WritePin(RFPOWEREN_GPIO_Port, RFPOWEREN_Pin, GPIO_PIN_SET);
+
+	rfLink = new RfLink(&htim4, transmitter);
+	rfLink->init();
+
+	if (transmitter) {
+		rfLink->onTransmit = [](Packet &packet) {
+			channelData->fillRawChannelData(packet);
+		};
+
+		rfLink->onReceiveTelemetry = [](Packet &packet) {
+			*telemetry = packet;
+		};
+	} else {
+		rfLink->onPrepareTelemetryPacket = []() {
+			uint8_t telemetryPacketSize = telemetry->prepareTelemetryPacket();
+			return telemetryPacketSize + sizeof(Packet::status);
+		};
+
+		rfLink->onTransmitTelemetry = [](Packet &packet) {
+			telemetry->sendTelemetryPacket(packet);
+		};
+
+		rfLink->onReceive = [](Packet &packet) {
+			*channelData = packet;
+			float resolution = 139999.0f / 4095.0f;
+			float pwm1 = 139999 + (*channelData)[0]->value * resolution;
+			float pwm2 = 139999 + (*channelData)[1]->value * resolution;
+			float pwm3 = 139999 + (*channelData)[2]->value * resolution;
+			float pwm4 = 139999 + (*channelData)[3]->value * resolution;
+			float pwm5 = 139999 + (*channelData)[4]->value * resolution;
+			float pwm6 = 139999 + (*channelData)[5]->value * resolution;
+			float pwm7 = 139999 + (*channelData)[6]->value * resolution;
+			float pwm8 = 139999 + (*channelData)[7]->value * resolution;
+			// !!!!!!!!! Make sure we will be in the range !!!!!!!!!!!!!!!
+
+			__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_4, pwm1);
+			__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, pwm2);
+			__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_2, pwm3);
+			__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_2, pwm4);
+			__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, pwm5);
+			__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_4, pwm6);
+			__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_1, pwm7);
+			__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_3, pwm8);
+		};
+	}
+
+	rfLink->onLinkStatusChange = [](bool tracking) {
+		rxTracking = tracking;
+		tracking ? visualStatus->setStatus(TRACKING) : visualStatus->setStatus(CONNECTION_LOST);
+	};
+}
+
+void setUpExtensionPort() {
+	if (transmitter) {
+		// setup crossfire
+		crossfire = new Crossfire(&huart3, &hcrc);
+		HAL_UART_Receive_DMA(&huart3, crsfBuffer, sizeof(crsfBuffer));
+	}
+}
+
+void startPwmOutputForChannelData() {
+	if (transmitter) { return; }
+
+	HAL_GPIO_WritePin(PWMOE_GPIO_Port, PWMOE_Pin, GPIO_PIN_SET);
+	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
+	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2);
+	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3);
+	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_4);
+	HAL_TIM_PWM_Start(&htim5, TIM_CHANNEL_1);
+	HAL_TIM_PWM_Start(&htim5, TIM_CHANNEL_2);
+	HAL_TIM_PWM_Start(&htim5, TIM_CHANNEL_3);
+	HAL_TIM_PWM_Start(&htim5, TIM_CHANNEL_4);
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -159,105 +267,21 @@ int main(void)
   MX_CRC_Init();
   /* USER CODE BEGIN 2 */
 
-  // Check if this is a transmitter?
-  transmitter = HAL_GPIO_ReadPin(TXMODE_GPIO_Port, TXMODE_Pin) == GPIO_PIN_SET ? false : true;
+	// Check if this is a transmitter?
+	transmitter = HAL_GPIO_ReadPin(TXMODE_GPIO_Port, TXMODE_Pin) == GPIO_PIN_RESET;
 
-  Pin redLed = Pin(LEDRED_GPIO_Port, LEDRED_Pin);
-  Pin greenLed = Pin(LEDGREEN_GPIO_Port, LEDGREEN_Pin);
-  Pin blueLed = Pin(LEDBLUE_GPIO_Port, LEDBLUE_Pin);
-  visualStatus = new VisualStatus(&htim4, redLed, greenLed, blueLed);
+	setUpChannels();
+	setUpStatusLeds();
+	setUpTelemetry();
+	setUpRfLink();
+	setUpExtensionPort();
 
-  //  HAL_GPIO_WritePin(BNORESET_GPIO_Port, BNORESET_Pin, GPIO_PIN_SET);
-
-	// Setup channels
-	channelData = new ChannelData(26);
-
-	// Setup telemetry
-	if (transmitter) {
-		TransmitterSensor *transmitterSensor = new TransmitterSensor();
-
-		telemetry = new Telemetry({
-			transmitterSensor
-		});
-	} else {
-		ReceiverSensor *receiverSensor = new ReceiverSensor();
-		OrientationSensor *orientationSensor = new OrientationSensor();
-		VarioSensor *varioSensor = new VarioSensor(BMP3_I2C_ADDR_SEC);
-
-		telemetry = new Telemetry({
-			receiverSensor,
-			orientationSensor,
-			varioSensor
-		});
-	}
-
-	rfLink = new RfLink(&htim4, transmitter);
-	rfLink->init();
-	rfLink->onTransmit = [](Packet &packet) {
-		channelData->fillRawChannelData(packet);
-	};
-	if (!transmitter) {
-		rfLink->onPrepareTelemetryPacket = []() {
-			uint8_t telemetryPacketSize = telemetry->prepareTelemetryPacket();
-			return telemetryPacketSize + sizeof(Packet::status);
-		};
-		rfLink->onTransmitTelemetry = [](Packet &packet) {
-			telemetry->sendTelemetryPacket(packet);
-		};
-	}
-	rfLink->onReceive = [](Packet &packet) {
-		*channelData = packet;
-		float resolution = 139999.0f / 4095.0f;
-		float pwm1 = 139999 + (*channelData)[0]->value * resolution;
-		float pwm2 = 139999 + (*channelData)[1]->value * resolution;
-		float pwm3 = 139999 + (*channelData)[2]->value * resolution;
-		float pwm4 = 139999 + (*channelData)[3]->value * resolution;
-		float pwm5 = 139999 + (*channelData)[4]->value * resolution;
-		float pwm6 = 139999 + (*channelData)[5]->value * resolution;
-		float pwm7 = 139999 + (*channelData)[6]->value * resolution;
-		float pwm8 = 139999 + (*channelData)[7]->value * resolution;
-		// !!!!!!!!! Make sure we will be in the range !!!!!!!!!!!!!!!
-
-		__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_4, pwm1);
-		__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, pwm2);
-		__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_2, pwm3);
-		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_2, pwm4);
-		__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, pwm5);
-		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_4, pwm6);
-		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_1, pwm7);
-		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_3, pwm8);
-	};
-	rfLink->onReceiveTelemetry = [](Packet &packet) {
-		*telemetry = packet;
-	};
-
-	rfLink->onLinkStatusChange = [](bool tracking) {
-		rxTracking = tracking;
-		tracking ? visualStatus->setStatus(TRACKING) : visualStatus->setStatus(CONNECTION_LOST);
-	};
-
-//  HAL_GPIO_WritePin(LEDBLUE_GPIO_Port, LEDBLUE_Pin, GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(RFPOWEREN_GPIO_Port, RFPOWEREN_Pin, GPIO_PIN_SET);
-  HAL_GPIO_WritePin(PWMOE_GPIO_Port, PWMOE_Pin, GPIO_PIN_SET);
-
-
-  //setup crossfire
-  crossfire = new Crossfire(&huart3, &hcrc);
-
-  HAL_UART_Receive_DMA(&huart3, crsfBuffer, sizeof(crsfBuffer));
+	startPwmOutputForChannelData();
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
-  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2);
-  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3);
-  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_4);
-  HAL_TIM_PWM_Start(&htim5, TIM_CHANNEL_1);
-  HAL_TIM_PWM_Start(&htim5, TIM_CHANNEL_2);
-  HAL_TIM_PWM_Start(&htim5, TIM_CHANNEL_3);
-  HAL_TIM_PWM_Start(&htim5, TIM_CHANNEL_4);
   HAL_TIM_Base_Start_IT(&htim4);  // Start heartbeat timer
   while (1)
   {
@@ -271,23 +295,6 @@ int main(void)
 		crossfire->setTelemetry(rxTracking, telemetry);
 		crossfire->decodePacket(crsfBuffer, CRSF_FRAMELEN_MAX, *channelData, &crsfPacketReceived);
 	}
-
-//	  if (HAL_I2C_Master_Transmit(&hi2c1, address, buffer, 1, 1000000) == HAL_OK) {
-//		  HAL_GPIO_WritePin(LEDRED_GPIO_Port, LEDRED_Pin, GPIO_PIN_RESET);
-//	  }
-//	  HAL_Delay(20);
-//	  if (HAL_I2C_Master_Receive(&hi2c1, 0x28, buffer, 1, 1000) == HAL_OK) {
-//		  HAL_GPIO_WritePin(LEDGREEN_GPIO_Port, LEDGREEN_Pin, GPIO_PIN_RESET);
-//	  }
-
-//	  if (HAL_I2C_Mem_Read(&hi2c1, 0x50, 0, 1, buffer, 1, 1000) == HAL_OK) {
-//		  HAL_GPIO_WritePin(LEDGREEN_GPIO_Port, LEDGREEN_Pin, GPIO_PIN_RESET);
-//	  }
-//	  HAL_Delay(100);
-//	  address++;
-//	  if (address > 0xFF) {
-//		  address = 0;
-//	  }
 
 //	  HAL_Delay(100);
 //	  int8_t temperature = orientationSensor.getTemperature();
