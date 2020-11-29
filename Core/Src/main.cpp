@@ -18,7 +18,6 @@
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
-#include <vario/variosensor.h>
 #include "main.h"
 #include "crc.h"
 #include "dma.h"
@@ -39,6 +38,7 @@
 #include "channel.h"
 #include "telemetry.h"
 #include "orientation/orientationsensor.h"
+#include "vario/variosensor.h"
 #include "radio/transmittersensor.h"
 #include "radio/receiversensor.h"
 #include "crsf.h"
