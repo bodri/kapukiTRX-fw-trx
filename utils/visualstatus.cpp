@@ -20,7 +20,7 @@ void VisualStatus::processHeartBeat(TIM_HandleTypeDef *htim) {
 }
 
 void VisualStatus::runLoop(void) {
-	if (tick > 50) {
+	if (tick > 100) {
 		tick = 0;
 	}
 
@@ -28,18 +28,18 @@ void VisualStatus::runLoop(void) {
 		previousStatus = status;
 		redLed.high();
 		greenLed.high();
-//		blueLed.high();
+		blueLed.high();
 	}
 
 	switch (status) {
 	case WAITING_FOR_CONNECTION:
-		tick < 25 ? greenLed.low() : greenLed.high();
+		tick < 50 ? greenLed.low() : greenLed.high();
 		break;
 	case TRACKING:
 		greenLed.low();
 		break;
 	case CONNECTION_LOST:
-		tick < 25 ? redLed.low() : redLed.high();
+		tick < 50 ? redLed.low() : redLed.high();
 		break;
 	case ERROR_GENERAL:
 		redLed.low();

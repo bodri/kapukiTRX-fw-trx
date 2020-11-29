@@ -171,16 +171,18 @@ void setUpRfLink() {
 		};
 
 		rfLink->onReceive = [](Packet &packet) {
+			static const float pwm1msec = 139999.0f;
+
 			*channelData = packet;
-			float resolution = 139999.0f / 4095.0f;
-			float pwm1 = 139999 + (*channelData)[0]->value * resolution;
-			float pwm2 = 139999 + (*channelData)[1]->value * resolution;
-			float pwm3 = 139999 + (*channelData)[2]->value * resolution;
-			float pwm4 = 139999 + (*channelData)[3]->value * resolution;
-			float pwm5 = 139999 + (*channelData)[4]->value * resolution;
-			float pwm6 = 139999 + (*channelData)[5]->value * resolution;
-			float pwm7 = 139999 + (*channelData)[6]->value * resolution;
-			float pwm8 = 139999 + (*channelData)[7]->value * resolution;
+			float resolution = pwm1msec / (packet.status.packetType == NORMAL ? 4096.0f : 2048.0f);
+			float pwm1 = pwm1msec + *(*channelData)[0] * resolution;
+			float pwm2 = pwm1msec + *(*channelData)[1] * resolution;
+			float pwm3 = pwm1msec + *(*channelData)[2] * resolution;
+			float pwm4 = pwm1msec + *(*channelData)[3] * resolution;
+			float pwm5 = pwm1msec + *(*channelData)[4] * resolution;
+			float pwm6 = pwm1msec + *(*channelData)[5] * resolution;
+			float pwm7 = pwm1msec + *(*channelData)[6] * resolution;
+			float pwm8 = pwm1msec + *(*channelData)[7] * resolution;
 			// !!!!!!!!! Make sure we will be in the range !!!!!!!!!!!!!!!
 
 			__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_4, pwm1);

@@ -24,6 +24,16 @@ public:
 	Channel(uint16_t value) : value(value) { }
 	~Channel() { }
 
+	Channel &operator = (const uint16_t data) {
+		value = data;
+		return *this;
+	};
+
+	operator uint16_t() const {
+		return value;
+	}
+
+private:
 	uint16_t value;
 };
 
@@ -39,6 +49,12 @@ public:
 	void fillRawChannelData(Packet &packet);
 
 	std::vector<Channel *> channels;
+
+private:
+	void loadNormalChannelData(const uint8_t *payload);
+	void loadOpenTxChannelData(const uint8_t *payload);
+	void fillOpenTxChannelData(uint8_t *payload);
+	void fillNormalChannelData(uint8_t *payload);
 };
 
 #endif // __CHANNEL_H__

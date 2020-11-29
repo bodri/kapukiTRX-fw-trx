@@ -57,7 +57,8 @@ void Crossfire::decodePacket(uint8_t *buffer, size_t maxBufferLength, ChannelDat
 				  if (serialBuffer[0] == 0xEE) {
 					  if (serialBuffer[2] == 0x16) {
 						  // channel data
-						  decode11BitChannels((const uint8_t *)(&serialBuffer[3]), CRSF_MAX_CHANNELS, channelData, 2U, 1U, 0U);
+//						  uint16_t multiplier = (packet.status.packetType == NORMAL ? 2U : 1U);
+						  decode11BitChannels((const uint8_t *)(&serialBuffer[3]), CRSF_MAX_CHANNELS, channelData, 1U, 1U, 0U);
 
 						  sendBackTelemetry();
 					  }
@@ -79,22 +80,22 @@ void Crossfire::decode11BitChannels(const uint8_t *data, uint8_t numberOfChannel
 #define CHANNEL_SCALE(x) ((int32_t(x) * mult) / div + offset)
 
     const Channels11Bit *channels = reinterpret_cast<const Channels11Bit *>(data);
-    channelData[0]->value = CHANNEL_SCALE(channels->ch0);
-    channelData[1]->value = CHANNEL_SCALE(channels->ch1);
-    channelData[2]->value = CHANNEL_SCALE(channels->ch2);
-    channelData[3]->value = CHANNEL_SCALE(channels->ch3);
-    channelData[4]->value = CHANNEL_SCALE(channels->ch4);
-    channelData[5]->value = CHANNEL_SCALE(channels->ch5);
-    channelData[6]->value = CHANNEL_SCALE(channels->ch6);
-    channelData[7]->value = CHANNEL_SCALE(channels->ch7);
-    channelData[8]->value = CHANNEL_SCALE(channels->ch8);
-    channelData[9]->value = CHANNEL_SCALE(channels->ch9);
-    channelData[10]->value = CHANNEL_SCALE(channels->ch10);
-    channelData[11]->value = CHANNEL_SCALE(channels->ch11);
-    channelData[12]->value = CHANNEL_SCALE(channels->ch12);
-    channelData[13]->value = CHANNEL_SCALE(channels->ch13);
-    channelData[14]->value = CHANNEL_SCALE(channels->ch14);
-    channelData[15]->value = CHANNEL_SCALE(channels->ch15);
+    *channelData[0] = CHANNEL_SCALE(channels->ch0);
+    *channelData[1] = CHANNEL_SCALE(channels->ch1);
+    *channelData[2] = CHANNEL_SCALE(channels->ch2);
+    *channelData[3] = CHANNEL_SCALE(channels->ch3);
+    *channelData[4] = CHANNEL_SCALE(channels->ch4);
+    *channelData[5] = CHANNEL_SCALE(channels->ch5);
+    *channelData[6] = CHANNEL_SCALE(channels->ch6);
+    *channelData[7] = CHANNEL_SCALE(channels->ch7);
+    *channelData[8] = CHANNEL_SCALE(channels->ch8);
+    *channelData[9] = CHANNEL_SCALE(channels->ch9);
+    *channelData[10] = CHANNEL_SCALE(channels->ch10);
+    *channelData[11] = CHANNEL_SCALE(channels->ch11);
+    *channelData[12] = CHANNEL_SCALE(channels->ch12);
+    *channelData[13] = CHANNEL_SCALE(channels->ch13);
+    *channelData[14] = CHANNEL_SCALE(channels->ch14);
+    *channelData[15] = CHANNEL_SCALE(channels->ch15);
 }
 
 //inline void Crossfire::scaleChannel(uint16_t mult, uint16_t div, uint16_t offset) {
@@ -140,7 +141,7 @@ void Crossfire::sendLinkStatistics() {
 
 	linkStatistics.rxRssi1 = rxRssi1;
 	linkStatistics.rxRssi2 = rxRssi2;
-	linkStatistics.rxQuality = 34; //linkQuality; // WTF: if this is 0 the transmission stops
+	linkStatistics.rxQuality = linkQuality;
 	linkStatistics.rxSnr = 100 + std::max(rxRssi1, rxRssi2); // Calculation for OpenTX RSSI
 	linkStatistics.antenna = 1;
 	linkStatistics.rfMode = 2;
