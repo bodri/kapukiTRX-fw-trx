@@ -45,6 +45,12 @@ void SX1280::init(void) {
     modulationParams.Params.Flrc.CodingRate = FLRC_CR_3_4;
     modulationParams.Params.Flrc.ModulationShaping = RADIO_MOD_SHAPING_BT_OFF;
 
+//    ModulationParams_t modulationParams;
+//    modulationParams.PacketType = PACKET_TYPE_LORA;
+//    modulationParams.Params.LoRa.SpreadingFactor = LORA_SF5;
+//    modulationParams.Params.LoRa.Bandwidth = LORA_BW_0800;
+//    modulationParams.Params.LoRa.CodingRate = LORA_CR_LI_4_5;
+
     setStandBy(STDBY_RC);
     setPacketType(modulationParams.PacketType);
     setModulationParams(&modulationParams);

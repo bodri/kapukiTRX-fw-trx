@@ -20,6 +20,7 @@
 
 #include <array>
 #include <vector>
+#include <algorithm>
 
 void RfLink::init() {
 	this->patternGenerator = new PatternGenerator(NULL, PatternGenerator::maximumNumberOfChannels);
@@ -238,16 +239,6 @@ void RfLink::runLoop(void) {
 //			lostPacket = 0;
 //		}
 
-//		Packet *packet = rf1Buffer.current;
-//
-//		if (packet->payload.packetNumber == 100) {
-//			printf("Packet: %.20s\n", packet->payload.buffer);
-//		}
-//
-//		printf("Packet %d, RSSI: %ddBm, lqi: %d%%\n",
-//				packet->payload.packetNumber, rssiPowerLevel(packet->status.rssi),
-//				lqiPercentage(packet->status.linkQuality.lqi));
-
 		// RSSI
 		if (packetNumber % 50 == 0) {
 			if (rssiAverageCounter > 0) {
@@ -261,9 +252,10 @@ void RfLink::runLoop(void) {
 		}
 
 		// Link Quality
-		if (packetNumber % 100 == 0) { // 80 tx packets + 20 rx packets
+		if (packetNumber % 200 == 0) { // 80 tx packets + 20 rx packets
 			if (receiverPacketCounter > 0) {
-				linkQuality = expectedPacketNumber / receiverPacketCounter * 100;
+				uint32_t ratio = receiverPacketCounter * 100 / expectedPacketNumber;
+				linkQuality = std::min(uint8_t(100), uint8_t(ratio));
 			} else {
 				linkQuality = 0;
 			}
@@ -462,6 +454,13 @@ void RfLink::setNormalPacketParams(SX1280 *rfModule, uint8_t length) {
     packetParams.Params.Flrc.CrcLength = RADIO_CRC_2_BYTES;
     packetParams.Params.Flrc.Whitening = RADIO_WHITENING_OFF;
 
+//    packetParams.PacketType = PACKET_TYPE_LORA;
+//    packetParams.Params.LoRa.PreambleLength = PREAMBLE_LENGTH_16_BITS;
+//    packetParams.Params.LoRa.HeaderType = LORA_PACKET_FIXED_LENGTH;
+//    packetParams.Params.LoRa.PayloadLength = length;
+//    packetParams.Params.LoRa.Crc = LORA_CRC_ON;
+//    packetParams.Params.LoRa.InvertIQ = LORA_IQ_NORMAL;
+
     rfModule->setPacketParams(&packetParams);
 }
 
@@ -475,6 +474,13 @@ void RfLink::setTelemetryPacketParams(SX1280 *rfModule, uint8_t length) {
     packetParams.Params.Flrc.PayloadLength = length;
     packetParams.Params.Flrc.CrcLength = RADIO_CRC_2_BYTES;
     packetParams.Params.Flrc.Whitening = RADIO_WHITENING_OFF;
+
+//    packetParams.PacketType = PACKET_TYPE_LORA;
+//    packetParams.Params.LoRa.PreambleLength = PREAMBLE_LENGTH_16_BITS;
+//    packetParams.Params.LoRa.HeaderType = LORA_PACKET_VARIABLE_LENGTH;
+//    packetParams.Params.LoRa.PayloadLength = length;
+//    packetParams.Params.LoRa.Crc = LORA_CRC_ON;
+//    packetParams.Params.LoRa.InvertIQ = LORA_IQ_NORMAL;
 
     rfModule->setPacketParams(&packetParams);
 }
